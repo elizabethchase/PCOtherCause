@@ -1,0 +1,329 @@
+---
+title: "OCM_modelbuilding"
+author: "Elizabeth Chase"
+date: "7/20/2020"
+output: pdf_document
+---
+
+```{r setup, echo=TRUE, include=FALSE}
+library(knitr)
+opts_chunk$set(collapse=TRUE, fig.align='center', tidy=TRUE, tidy.opts=list(blank=TRUE, width.cutoff=40), warning=FALSE,message=FALSE)
+
+rm(list=ls())
+
+library(tidyverse)
+library(gridExtra)
+library(RColorBrewer)
+library(tableone)
+library(latex2exp)
+library(labelled)
+library(kableExtra)
+library(survival)
+library(survey)
+library(randomForestSRC)
+library(flexsurv)
+
+#We read in the NHANES dataset for model-building:
+mydata <- read_csv("~/Desktop/Research/Matt Prostate OCM/PCOtherCause/nhanesbig.csv")
+
+#We store a copy of the data in raw form:
+mydata_nf <- mydata 
+
+#And now we apply factors and variable labels to the data:
+mydata$sex <- factor(mydata$sex, levels=c(1, 2), labels=c("Male", "Female"))
+mydata$race2 <- factor(mydata$race2, levels=c("NHB", "NHW", "Other"))
+mydata$military <- factor(mydata$military, levels=c(1, 2), labels=c("Served", "Did not serve"))
+mydata$usbirth <- factor(mydata$usbirth, levels=c(1, 2, 3), labels=c("Born U.S.", "Born Mexico", "Born elsewhere"))
+mydata$educ <- factor(mydata$educ, levels=c(1:5), labels=c("Less than 9th grade", "9th-11th grade", "HS graduate", "Some college", "College graduate"))
+mydata$marital2 <- factor(mydata$marital2, levels=c("Married", "Separated", "Single"), labels=c("Married", "Separated", "Single"))
+mydata$hypertension <- factor(mydata$hypertension, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$highchol <- factor(mydata$highchol, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$diabetic <- factor(mydata$diabetic, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$alcoholic <- factor(mydata$alcoholic, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$insurance <- factor(mydata$insurance, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$care <- factor(mydata$care, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$hospital <- factor(mydata$hospital, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$mental <- factor(mydata$mental, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$kidney <- factor(mydata$kidney, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$asthma <- factor(mydata$asthma, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$anemic <- factor(mydata$anemic, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$overweight_ex <- factor(mydata$overweight_ex, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$obese <- factor(mydata$obese, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$underweight <- factor(mydata$underweight, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$overweight2 <- factor(mydata$overweight2, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$obese2 <- factor(mydata$obese2, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$arthritis <- factor(mydata$arthritis, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$chf <- factor(mydata$chf, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$chd <- factor(mydata$chd, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$angina <- factor(mydata$angina, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$mi <- factor(mydata$mi, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$mi_chd <- factor(mydata$mi_chd, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$stroke <- factor(mydata$stroke, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$emphysema <- factor(mydata$emphysema, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$bronch <- factor(mydata$bronch, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$liver <- factor(mydata$liver, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$pc <- factor(mydata$pc, levels=c(0, 1), labels=c("No PC", "PC"))
+mydata$smoker <- factor(mydata$smoker, levels=c(0, 1, 2), labels=c("Never", "Current", "Former"))
+mydata$mortstat <- factor(mydata$mortstat, levels=c(0, 1), labels=c("Alive", "Deceased"))
+mydata$hiv <- factor(mydata$hiv, levels=c(0, 1), labels=c("No", "Yes"))
+mydata$SDDSRVYR <- factor(mydata$SDDSRVYR, levels=c(1, 2, 3, 4, 5, 6), labels=c("1999-2000", "2001-2002", "2003-2004", "2005-2006", "2007-2008", "2009-2010"))
+
+var_label(mydata$pc) <- "Has prostate cancer"
+var_label(mydata$permth_exm) <- "Survival (months)"
+var_label(mydata$age) <- "Age (years)"
+var_label(mydata$race2) <- "Race"
+var_label(mydata$military) <- "Military service"
+var_label(mydata$usbirth) <- "Birthplace"
+var_label(mydata$educ) <- "Education"
+var_label(mydata$marital2) <- "Marital status"
+var_label(mydata$hypertension) <- "Has hypertension"
+var_label(mydata$highchol) <- "Has high cholesterol"
+var_label(mydata$diabetic) <- "Diabetic"
+var_label(mydata$insurance) <- "Has insurance"
+var_label(mydata$care) <- "Has primary care provider"
+var_label(mydata$hospital) <- "Hospitalized in last 12 months"
+var_label(mydata$mental) <- "Has mental health issue"
+var_label(mydata$kidney) <- "Has kidney disease"
+var_label(mydata$alcoholic) <- "Heavy drinker"
+var_label(mydata$asthma) <- "Has asthma"
+var_label(mydata$anemic) <- "Anemic"
+var_label(mydata$underweight) <- "Underweight (<18.5)"
+var_label(mydata$overweight_ex) <- "Overweight (25-30)"
+var_label(mydata$obese) <- "Obese (30+)"
+var_label(mydata$overweight2) <- "Overweight (25-40)"
+var_label(mydata$obese2) <- "Obese (40+)"
+var_label(mydata$arthritis) <- "Arthritic"
+var_label(mydata$chf) <- "Has congestive heart failure"
+var_label(mydata$chd) <- "Has coronary heart disease"
+var_label(mydata$angina) <- "Has angina"
+var_label(mydata$mi) <- "Previous heart attack"
+var_label(mydata$mi_chd) <- "Previous heart attack or CHD"
+var_label(mydata$stroke) <- "Previous stroke"
+var_label(mydata$emphysema) <- "Has emphysema"
+var_label(mydata$bronch) <- "Has chronic bronchitis"
+var_label(mydata$liver) <- "Has liver disease"
+var_label(mydata$smoker) <- "Smoking status"
+var_label(mydata$hiv) <- "Has HIV"
+var_label(mydata$INDFMPIR) <- "Income:Poverty Level Ratio"
+var_label(mydata$BMXBMI) <- "BMI (kg/m2)"
+var_label(mydata$pcduration) <- "Years with PC"
+var_label(mydata$agepc) <- "Age of PC Diagnosis"
+var_label(mydata$SDDSRVYR) <- "Survey Year"
+
+#We create the survey design object so we can do weighted analyses:
+mydata$psu <- case_when(
+  is.na(mydata$SDMVPSU) ~ 0,
+  !is.na(mydata$SDMVPSU) ~ mydata$SDMVPSU
+)
+
+mydata$sweights <- case_when(
+  is.na(mydata$WTMEC2YR) ~ 0,
+  !is.na(mydata$WTMEC2YR) ~ mydata$WTMEC2YR
+)
+
+mydata$strata <- case_when(
+  is.na(mydata$SDMVSTRA) ~ 0,
+  !is.na(mydata$SDMVSTRA) ~ mydata$SDMVSTRA
+)
+
+nhanes_svy <- svydesign(data=mydata, id=~psu, strata=~strata, weights=~sweights, nest=TRUE)
+nhanes_sub <- subset(nhanes_svy, inmodel1==1)
+```
+
+## Descriptives
+
+First, an unweighted table of descriptives:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+table_unweight <- CreateTableOne(vars = c("age", "SDDSRVYR", "race2", "military", "usbirth", "educ", "marital2", "INDFMPIR", "insurance", "care", "hospital",  "hypertension", "highchol", "diabetic", "mental", "kidney", "asthma", "anemic", "arthritis", "chf", "chd", "angina", "mi", "mi_chd", "stroke", "emphysema", "bronch", "liver", "hiv", "pc", "agepc", "BMXBMI", "underweight", "overweight_ex", "overweight2", "obese", "obese2", "alcoholic", "smoker", "permth_exm"), strata = "mortstat", includeNA = TRUE, data = mydata[mydata$inmodel1==1,], argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
+
+kable(print(table_unweight, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(4:9, 11:13, 16:19, 21:25, 27:29, 52:54, 65:67))
+```
+
+And now the same table, but survey weighted:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+table_weight <- svyCreateTableOne(vars = c("age", "SDDSRVYR", "race2", "military", "usbirth", "educ", "marital2", "INDFMPIR", "insurance", "care", "hospital",  "hypertension", "highchol", "diabetic", "mental", "kidney", "asthma", "anemic", "arthritis", "chf", "chd", "angina", "mi", "mi_chd", "stroke", "emphysema", "bronch", "liver", "hiv", "pc", "agepc", "BMXBMI", "underweight", "overweight_ex", "overweight2", "obese", "obese2", "alcoholic", "smoker", "permth_exm"), strata = "mortstat", includeNA = TRUE, data = nhanes_sub, argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
+
+kable(print(table_weight, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(4:9, 11:13, 16:19, 21:25, 27:29, 52:54, 65:67))
+```
+
+## Cox Model Building, With Survey Weights
+
+We start by fitting a Cox model with all of our predictors, using the NHANES survey weights. 
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+nhanes_cox_full <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + alcoholic + anemic + arthritis + asthma + bronch + diabetic + educ + emphysema + hypertension + marital2 + mi + liver + race2 + smoker + stroke + underweight + overweight_ex + obese + angina + chf + chd + care + hospital + highchol + insurance + kidney + military + pc, design=nhanes_sub)
+
+summary(nhanes_cox_full)
+```
+
+And now we fit the same model, but using only those predictors that also appear in PLCO, our validation data:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+plco_cox <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + arthritis + bronch + diabetic + educ + emphysema + hypertension + marital2 + mi_chd + underweight + overweight_ex + obese + liver + race2 + smoker + stroke, design = nhanes_sub)
+  
+summary(plco_cox)
+```
+
+From this, we see that model performance is not overly hurt by restricting to PLCO-NHANES common covariates (C-index of 0.84 vs. 0.83). We try dropping the covariates arthritis, bronchitis, liver disease, and race, because these are overwhelmingly nonsignificant. In addition, we try dropping emphysema, because this may be more challenging to obtain in a clinical setting:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+plco_red1 <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight_ex + obese + smoker + stroke, design = nhanes_sub)
+  
+summary(plco_red1)
+```
+
+That had minimal effect on predictive performance, so let's stick with that. We now expand our sample out to only include individuals with complete data for our 9 current covariates (age, diabetes, education, hypertension, marital status, MI/CHD, BMI, smoking status, stroke), to increase our sample size. We consider interactions between all variables and age. 
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+mydata$inmodel2 <- ifelse(mydata$sex=="Male" & mydata$age > 40 & (mydata$cancer==0 | mydata$pc=="PC") & !is.na(mydata$age) & !is.na(mydata$diabetic) & !is.na(mydata$educ) & !is.na(mydata$hypertension) & !is.na(mydata$marital2) & !is.na(mydata$mi_chd) & !is.na(mydata$BMXBMI) & !is.na(mydata$smoker) & !is.na(mydata$stroke) & !is.na(mydata$mortstat) & !is.na(mydata$pc), 1, 0)
+
+nhanes_svy <- svydesign(data=mydata, id=~psu, strata=~strata, weights=~sweights, nest=TRUE)
+nhanes_sub2 <- subset(nhanes_svy, inmodel2==1)
+
+plco_moredat <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight_ex + obese + smoker + stroke, design = nhanes_sub2)
+  
+summary(plco_moredat)
+
+plco_int <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight_ex + obese + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*marital2 + scale(age, scale=FALSE)*mi_chd + scale(age, scale=FALSE)*underweight + scale(age, scale=FALSE)*overweight_ex + scale(age, scale=FALSE)*obese + scale(age, scale=FALSE)*smoker + scale(age, scale=FALSE)*stroke, design = nhanes_sub2)
+
+summary(plco_int)
+```
+
+As we might expect, broadening out to a larger sample reduced predictive performance somewhat (0.84 vs. 0.82). Introducing interactions boosted performance somewhat. Let's drop the interactions between age and marital status, MI/CHD, smoking status, and weight, since they seem less necessary:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+plco_int2 <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight_ex + obese + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke, design = nhanes_sub2)
+  
+summary(plco_int2)
+```
+
+All right. This seems like a pretty solid model. We will now consider adding in income information, which was a covariate of interest for our collaborators (but has substantial missingness, so we excluded it until now):
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+plco_int3 <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight_ex + obese + smoker + stroke + INDFMPIR + insurance + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke, design = nhanes_sub2)
+  
+summary(plco_int3)
+```
+
+That boosted performance somewhat (0.82 vs. 0.83), but not enough to deal with the hassle of imputing it in PLCO, which doesn't have any income information. Let's revert to our previous model. 
+
+My collaborators were concerned by the direction of the effects of being overweight (currently protective). We try a continuous version of BMI, both with and without a quadratic term:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+plco_int4 <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + BMXBMI + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke, design = nhanes_sub2)
+  
+summary(plco_int4)
+
+mydata$bmi_sq <- mydata$BMXBMI*mydata$BMXBMI
+nhanes_svy <- svydesign(data=mydata, id=~psu, strata=~strata, weights=~sweights, nest=TRUE)
+nhanes_sub2 <- subset(nhanes_svy, inmodel2==1)
+
+plco_int5 <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + BMXBMI + bmi_sq + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke, design = nhanes_sub2)
+  
+summary(plco_int5)
+```
+
+We also try splitting overweight/obese at a BMI of 40: 
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+plco_int6 <- svycoxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke, design = nhanes_sub2)
+  
+summary(plco_int6)
+```
+
+The split at 40 seems to be most interpretable without sacrificing predictive power, so we'll stick with that. We add in prostate cancer as a predictor because we'd like to adjust for that. We now refit this without the survey weights, so our final Cox model is:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+cox_final <- coxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke + pc, data = mydata[mydata$inmodel2==1,])
+  
+summary(cox_final)
+```
+
+## Random Forest Model Building
+
+We also considered a survival random forest. First, we fit the random forest with all predictors:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+mydata_nf$single <- ifelse(mydata_nf$marital2=="Single", 1, ifelse(is.na(mydata_nf$marital2), NA_real_, 0))
+mydata_nf$sep <- ifelse(mydata_nf$marital2=="Separated", 1, ifelse(is.na(mydata_nf$marital2), NA_real_, 0))
+mydata_nf$black <- ifelse(mydata_nf$race2=="NHB", 1, ifelse(is.na(mydata_nf$race2), NA_real_, 0))
+mydata_nf$other <- ifelse(mydata_nf$race2=="Other", 1, ifelse(is.na(mydata_nf$race2), NA_real_, 0))
+
+rforest_nhanes <- rfsrc(Surv(permth_exm, mortstat) ~ age + alcoholic + anemic + arthritis + asthma + bronch + diabetic + educ + emphysema + hypertension + single + sep + mi + liver + black + other + smoker + stroke + underweight + overweight_ex + obese + angina + chf + chd + care + hospital + highchol + insurance + kidney + military + pc, data=mydata_nf[mydata_nf$inmodel1==1,], seed=1259)
+
+varlist_nhanes <- vimp(rforest_nhanes)
+
+print(rforest_nhanes)
+print(varlist_nhanes$importance)
+```
+
+And now we refit considering only PLCO-NHANES common covariates:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+mydata_nf$inmodel3 <- ifelse(mydata_nf$sex==1 & mydata_nf$age > 40 & (mydata_nf$cancer==0 | mydata_nf$pc==1) & !is.na(mydata_nf$age) & !is.na(mydata_nf$bronch) & !is.na(mydata_nf$diabetic) & !is.na(mydata_nf$educ) & !is.na(mydata_nf$emphysema) & !is.na(mydata_nf$hypertension) & !is.na(mydata_nf$marital2) & !is.na(mydata_nf$mi_chd) & !is.na(mydata_nf$BMXBMI) & !is.na(mydata_nf$liver) & !is.na(mydata_nf$race2) & !is.na(mydata_nf$smoker) & !is.na(mydata_nf$stroke) & !is.na(mydata_nf$mortstat) & !is.na(mydata_nf$pc), 1, 0)
+
+rforest_plco <- rfsrc(Surv(permth_exm, mortstat) ~ age + arthritis + bronch + diabetic + educ + emphysema + hypertension + single + sep + mi_chd + underweight + overweight_ex + obese + liver + black + other + smoker + stroke + pc, data=mydata_nf[mydata_nf$inmodel3==1,], seed=1259)
+
+varlist_plco <- vimp(rforest_plco)
+
+print(rforest_plco)
+print(varlist_plco$importance)
+```
+
+Again, model performance seems roughly comparable, so we will stick with the PLCO-NHANES common model. We do not need to consider interactions or other covariates, so the PLCO-NHANES common model is our final random forest candidate. 
+
+## Parametric Spline Model Building
+
+We consider refitting our original Cox model using parametric spline modeling. Note that we had to exclude 3 patients who had survival time of 0 in order to get these models to fit. We consider models with one vs. two knots, and time dependency on age:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+sp1 <- flexsurvspline(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke + pc, data = mydata[mydata$inmodel2==1 & mydata$permth_exm>0,], k=1, scale="hazard")
+
+coefficients(sp1)
+
+sp2 <- flexsurvspline(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke + pc, data = mydata[mydata$inmodel2==1 & mydata$permth_exm>0,], k=2, scale="hazard")
+
+coefficients(sp2)
+
+sp1_td <- flexsurvspline(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + gamma1(scale(age, scale=FALSE)) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke + pc, data = mydata[mydata$inmodel2==1 & mydata$permth_exm>0,], k=1, scale="hazard")
+
+coefficients(sp1_td)
+
+sp2_td <- flexsurvspline(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + gamma1(scale(age, scale=FALSE)) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke + pc, data = mydata[mydata$inmodel2==1 & mydata$permth_exm>0,], k=2, scale="hazard")
+
+coefficients(sp2_td)
+
+performance <- data.frame("Method" = c("1 Knot", "2 Knots", "1 Knot, Time Dep.", "2 Knots, Time Dep."), "AIC" = c(sp1$AIC, sp2$AIC, sp1_td$AIC, sp2_td$AIC))
+
+kable(performance, caption = "AIC of Parametric Spline Models (Smaller Better)")
+```
+
+All of the above models seem pretty comparable in terms of AIC. To balance simplicity and AIC, we decide to go with the two knot, time-independent model (sp2) as our candidate parametric spline model.
+
+## Sensitivity Analyses: Prostate Cancer Interactions
+
+To assess the effect of prostate cancer on our treatment predictions, we refit the models above without prostate cancer to see if it made a difference in model quality. In addition, we use the linear predictor from these models in a second model that also includes prostate cancer and an interaction between prostate cancer and the linear predictor. None of these sensitivity analyses indicated significantly different effects for prostate cancer and and non-prostate cancer patients. Nonetheless, we left prostate cancer in the model so that we could adjust for it when making predictions for patients.
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+cox_nopc <- coxph(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke, data = mydata[mydata$inmodel2==1,])
+  
+summary(cox_nopc)
+
+rforest_nopc <- rfsrc(Surv(permth_exm, mortstat) ~ age + arthritis + bronch + diabetic + educ + emphysema + hypertension + single + sep + mi_chd + underweight + overweight_ex + obese + liver + black + other + smoker + stroke, data=mydata_nf[mydata_nf$inmodel3==1,], seed=1259)
+
+varlist_plco <- vimp(rforest_nopc)
+
+print(rforest_nopc)
+print(varlist_nopc$importance)
+
+sp_nopc <- flexsurvspline(Surv(permth_exm, as.numeric(mortstat)) ~ scale(age, scale=FALSE) + diabetic + educ + hypertension + marital2 + mi_chd + underweight + overweight2 + obese2 + smoker + stroke + scale(age, scale=FALSE)*diabetic + scale(age, scale=FALSE)*educ + scale(age, scale=FALSE)*hypertension + scale(age, scale=FALSE)*stroke, data = mydata[mydata$inmodel2==1 & mydata$permth_exm>0,], k=2, scale="hazard")
+
+coefficients(sp_nopc)
+
+pred_cox <- predict(cox_nopc, mydata[mydata$inmodel2==1,])
+mydata$pred[mydata$inmodel2==1] <- pred_cox
+
+pc_cox_check <- coxph(Surv(permth_exm, as.numeric(mortstat)) ~ pc + pred + pc*pred, data = mydata[mydata$inmodel2==1,])
+
+summary(pc_cox_check)
+
+predf <- model.matrix(sp_nopc) %*% sp_nopc$res[-(1:4),"est"]
+mydata$pred_spline[mydata$inmodel2==1 & mydata$permth_exm>0] <- predf[,1]
+
+pc_sp_check <- flexsurvspline(Surv(permth_exm, as.numeric(mortstat)) ~ pc + pred_spline + pc*pred_spline, data = mydata[mydata$inmodel2==1 & mydata$permth_exm>0,], k=2, scale="hazard")
+
+coefficients(pc_sp_check)
+```
+
+## Sensitivity Analyses: Age Distribution
+
+There was some concern about our decision to build our model in men ages 40+, as opposed to an older population that was ages 55+ or ages 65+. We conducted sensitivity analyses to compare 
+
