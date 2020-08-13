@@ -7,9 +7,16 @@ output: pdf_document
 
 ```{r setup, echo=TRUE, message=FALSE, warning=FALSE}
 library(knitr)
-opts_chunk$set(collapse=TRUE, fig.align='center', tidy=TRUE, tidy.opts=list(blank=TRUE, width.cutoff=40), warning=FALSE,message=FALSE)
+opts_chunk$set(
+  collapse = TRUE,
+  fig.align = 'center',
+  tidy = TRUE,
+  tidy.opts = list(blank = TRUE, width.cutoff = 40),
+  warning = FALSE,
+  message = FALSE
+)
 
-rm(list=ls())
+rm(list = ls())
 
 library(tidyverse)
 library(gridExtra)
@@ -24,389 +31,865 @@ library(kableExtra)
 
 First, we read in the mortality files, because we have to download these:
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
-srvyin <- paste("~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_1999_2000_MORT_2015_PUBLIC.dat")  
+srvyin <-
+  paste(
+    "~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_1999_2000_MORT_2015_PUBLIC.dat"
+  )
 
-MORT99 <- read_fwf(file=srvyin,
-                col_types = "ciiiiiiiddii",
-                fwf_cols(publicid = c(1,14),
-                         eligstat = c(15,15),
-                         mortstat = c(16,16),
-                         ucod_leading = c(17,19),
-                         diabetes = c(20,20),
-                         hyperten = c(21,21),
-                         dodqtr = c(22,22),
-                         dodyear = c(23,26),
-                         wgt_new = c(27,34),
-                         sa_wgt_new = c(35,42),
-                         permth_int = c(43,45),
-                         permth_exm = c(46,48)
-                ),
-                na = "."
+MORT99 <- read_fwf(
+  file = srvyin,
+  col_types = "ciiiiiiiddii",
+  fwf_cols(
+    publicid = c(1, 14),
+    eligstat = c(15, 15),
+    mortstat = c(16, 16),
+    ucod_leading = c(17, 19),
+    diabetes = c(20, 20),
+    hyperten = c(21, 21),
+    dodqtr = c(22, 22),
+    dodyear = c(23, 26),
+    wgt_new = c(27, 34),
+    sa_wgt_new = c(35, 42),
+    permth_int = c(43, 45),
+    permth_exm = c(46, 48)
+  ),
+  na = "."
 )
 
-MORT99$SEQN <- as.numeric(substr(MORT99$publicid,1,5))
+MORT99$SEQN <- as.numeric(substr(MORT99$publicid, 1, 5))
 
-srvyin <- paste("~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2001_2002_MORT_2015_PUBLIC.dat") 
+srvyin <-
+  paste(
+    "~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2001_2002_MORT_2015_PUBLIC.dat"
+  )
 
-MORT01 <- read_fwf(file=srvyin,
-                col_types = "ciiiiiiiddii",
-                fwf_cols(publicid = c(1,14),
-                         eligstat = c(15,15),
-                         mortstat = c(16,16),
-                         ucod_leading = c(17,19),
-                         diabetes = c(20,20),
-                         hyperten = c(21,21),
-                         dodqtr = c(22,22),
-                         dodyear = c(23,26),
-                         wgt_new = c(27,34),
-                         sa_wgt_new = c(35,42),
-                         permth_int = c(43,45),
-                         permth_exm = c(46,48)
-                ),
-                na = "."
+MORT01 <- read_fwf(
+  file = srvyin,
+  col_types = "ciiiiiiiddii",
+  fwf_cols(
+    publicid = c(1, 14),
+    eligstat = c(15, 15),
+    mortstat = c(16, 16),
+    ucod_leading = c(17, 19),
+    diabetes = c(20, 20),
+    hyperten = c(21, 21),
+    dodqtr = c(22, 22),
+    dodyear = c(23, 26),
+    wgt_new = c(27, 34),
+    sa_wgt_new = c(35, 42),
+    permth_int = c(43, 45),
+    permth_exm = c(46, 48)
+  ),
+  na = "."
 )
 
-MORT01$SEQN <- as.numeric(substr(MORT01$publicid,1,5))
+MORT01$SEQN <- as.numeric(substr(MORT01$publicid, 1, 5))
 
-srvyin <- paste("~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2003_2004_MORT_2015_PUBLIC.dat") 
+srvyin <-
+  paste(
+    "~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2003_2004_MORT_2015_PUBLIC.dat"
+  )
 
-MORT03 <- read_fwf(file=srvyin,
-                col_types = "ciiiiiiiddii",
-                fwf_cols(publicid = c(1,14),
-                         eligstat = c(15,15),
-                         mortstat = c(16,16),
-                         ucod_leading = c(17,19),
-                         diabetes = c(20,20),
-                         hyperten = c(21,21),
-                         dodqtr = c(22,22),
-                         dodyear = c(23,26),
-                         wgt_new = c(27,34),
-                         sa_wgt_new = c(35,42),
-                         permth_int = c(43,45),
-                         permth_exm = c(46,48)
-                ),
-                na = "."
+MORT03 <- read_fwf(
+  file = srvyin,
+  col_types = "ciiiiiiiddii",
+  fwf_cols(
+    publicid = c(1, 14),
+    eligstat = c(15, 15),
+    mortstat = c(16, 16),
+    ucod_leading = c(17, 19),
+    diabetes = c(20, 20),
+    hyperten = c(21, 21),
+    dodqtr = c(22, 22),
+    dodyear = c(23, 26),
+    wgt_new = c(27, 34),
+    sa_wgt_new = c(35, 42),
+    permth_int = c(43, 45),
+    permth_exm = c(46, 48)
+  ),
+  na = "."
 )
 
-MORT03$SEQN <- as.numeric(substr(MORT03$publicid,1,5))
+MORT03$SEQN <- as.numeric(substr(MORT03$publicid, 1, 5))
 
-srvyin <- paste("~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2005_2006_MORT_2015_PUBLIC.dat") 
+srvyin <-
+  paste(
+    "~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2005_2006_MORT_2015_PUBLIC.dat"
+  )
 
-MORT05 <- read_fwf(file=srvyin,
-                col_types = "ciiiiiiiddii",
-                fwf_cols(publicid = c(1,14),
-                         eligstat = c(15,15),
-                         mortstat = c(16,16),
-                         ucod_leading = c(17,19),
-                         diabetes = c(20,20),
-                         hyperten = c(21,21),
-                         dodqtr = c(22,22),
-                         dodyear = c(23,26),
-                         wgt_new = c(27,34),
-                         sa_wgt_new = c(35,42),
-                         permth_int = c(43,45),
-                         permth_exm = c(46,48)
-                ),
-                na = "."
+MORT05 <- read_fwf(
+  file = srvyin,
+  col_types = "ciiiiiiiddii",
+  fwf_cols(
+    publicid = c(1, 14),
+    eligstat = c(15, 15),
+    mortstat = c(16, 16),
+    ucod_leading = c(17, 19),
+    diabetes = c(20, 20),
+    hyperten = c(21, 21),
+    dodqtr = c(22, 22),
+    dodyear = c(23, 26),
+    wgt_new = c(27, 34),
+    sa_wgt_new = c(35, 42),
+    permth_int = c(43, 45),
+    permth_exm = c(46, 48)
+  ),
+  na = "."
 )
 
-MORT05$SEQN <- as.numeric(substr(MORT05$publicid,1,5))
+MORT05$SEQN <- as.numeric(substr(MORT05$publicid, 1, 5))
 
-srvyin <- paste("~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2007_2008_MORT_2015_PUBLIC.dat") 
+srvyin <-
+  paste(
+    "~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2007_2008_MORT_2015_PUBLIC.dat"
+  )
 
-MORT07 <- read_fwf(file=srvyin,
-                col_types = "ciiiiiiiddii",
-                fwf_cols(publicid = c(1,14),
-                         eligstat = c(15,15),
-                         mortstat = c(16,16),
-                         ucod_leading = c(17,19),
-                         diabetes = c(20,20),
-                         hyperten = c(21,21),
-                         dodqtr = c(22,22),
-                         dodyear = c(23,26),
-                         wgt_new = c(27,34),
-                         sa_wgt_new = c(35,42),
-                         permth_int = c(43,45),
-                         permth_exm = c(46,48)
-                ),
-                na = "."
+MORT07 <- read_fwf(
+  file = srvyin,
+  col_types = "ciiiiiiiddii",
+  fwf_cols(
+    publicid = c(1, 14),
+    eligstat = c(15, 15),
+    mortstat = c(16, 16),
+    ucod_leading = c(17, 19),
+    diabetes = c(20, 20),
+    hyperten = c(21, 21),
+    dodqtr = c(22, 22),
+    dodyear = c(23, 26),
+    wgt_new = c(27, 34),
+    sa_wgt_new = c(35, 42),
+    permth_int = c(43, 45),
+    permth_exm = c(46, 48)
+  ),
+  na = "."
 )
 
-MORT07$SEQN <- as.numeric(substr(MORT07$publicid,1,5))
+MORT07$SEQN <- as.numeric(substr(MORT07$publicid, 1, 5))
 
-srvyin <- paste("~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2009_2010_MORT_2015_PUBLIC.dat") 
+srvyin <-
+  paste(
+    "~/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/NHANES_2009_2010_MORT_2015_PUBLIC.dat"
+  )
 
-MORT09 <- read_fwf(file=srvyin,
-                col_types = "ciiiiiiiddii",
-                fwf_cols(publicid = c(1,14),
-                         eligstat = c(15,15),
-                         mortstat = c(16,16),
-                         ucod_leading = c(17,19),
-                         diabetes = c(20,20),
-                         hyperten = c(21,21),
-                         dodqtr = c(22,22),
-                         dodyear = c(23,26),
-                         wgt_new = c(27,34),
-                         sa_wgt_new = c(35,42),
-                         permth_int = c(43,45),
-                         permth_exm = c(46,48)
-                ),
-                na = "."
+MORT09 <- read_fwf(
+  file = srvyin,
+  col_types = "ciiiiiiiddii",
+  fwf_cols(
+    publicid = c(1, 14),
+    eligstat = c(15, 15),
+    mortstat = c(16, 16),
+    ucod_leading = c(17, 19),
+    diabetes = c(20, 20),
+    hyperten = c(21, 21),
+    dodqtr = c(22, 22),
+    dodyear = c(23, 26),
+    wgt_new = c(27, 34),
+    sa_wgt_new = c(35, 42),
+    permth_int = c(43, 45),
+    permth_exm = c(46, 48)
+  ),
+  na = "."
 )
 
-MORT09$SEQN <- as.numeric(substr(MORT09$publicid,1,5))
+MORT09$SEQN <- as.numeric(substr(MORT09$publicid, 1, 5))
 ```
 
 Now we download the data from the NHANES website (this will take a while, ~3 minutes):
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 #First getting the 1999-2000 data:
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/ALQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/ALQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 ALQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/BMX.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/BMX.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BMX99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/BPQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/BPQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/BPX.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/BPX.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPX99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/DEMO.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/DEMO.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DEMO99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/DIQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/DIQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DIQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/HIQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/HIQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/HSQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/HSQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HSQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/HUQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/HUQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HUQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/KIQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/KIQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/LAB03.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/LAB03.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab399 <- foreign::read.xport(tf)## Including Plots
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/LAB10.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/LAB10.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1099 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/LAB13.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/LAB13.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1399 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/MCQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/MCQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 MCQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/SMQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/SMQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 SMQ99 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/SMQ.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/1999-2000/SMQ.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 SMQ99 <- foreign::read.xport(tf)
 
 #Merging the 1999 files together:
-dat99 <- full_join(x=ALQ99, y=BMX99, by=c("SEQN")) %>% full_join(y=BPQ99, by=c("SEQN")) %>% full_join(y=BPX99, by=c("SEQN")) %>% full_join(y=DEMO99, by=c("SEQN")) %>% full_join(y=DIQ99, by=c("SEQN")) %>% full_join(y=HIQ99, by=c("SEQN")) %>% full_join(y=HSQ99, by=c("SEQN")) %>% full_join(y=HUQ99, by=c("SEQN")) %>% full_join(y=KIQ99, by=c("SEQN")) %>% full_join(y=lab399, by=c("SEQN")) %>% full_join(y=lab1099, by=c("SEQN")) %>% full_join(y=lab1399, by=c("SEQN")) %>% full_join(y=MCQ99, by=c("SEQN")) %>% full_join(y=SMQ99, by=c("SEQN")) %>% full_join(y=MORT99, by=c("SEQN"))
+dat99 <-
+  full_join(x = ALQ99, y = BMX99, by = c("SEQN")) %>% 
+  full_join(y = BPQ99, by =c("SEQN")) %>% 
+  full_join(y = BPX99, by = c("SEQN")) %>% 
+  full_join(y = DEMO99, by = c("SEQN")) %>% 
+  full_join(y = DIQ99, by = c("SEQN")) %>% 
+  full_join(y = HIQ99, by = c("SEQN")) %>% 
+  full_join(y = HSQ99, by = c("SEQN")) %>% 
+  full_join(y = HUQ99, by = c("SEQN")) %>% 
+  full_join(y = KIQ99, by = c("SEQN")) %>% 
+  full_join(y = lab399, by = c("SEQN")) %>% 
+  full_join(y = lab1099, by = c("SEQN")) %>% 
+  full_join(y = lab1399, by = c("SEQN")) %>% 
+  full_join(y = MCQ99, by = c("SEQN")) %>% 
+  full_join(y = SMQ99, by = c("SEQN")) %>% 
+  full_join(y = MORT99, by = c("SEQN"))
 
-rm(list=c("ALQ99", "BMX99", "BPQ99", "BPX99", "DEMO99", "DIQ99", "HIQ99", "HSQ99", "HUQ99", "KIQ99", "lab399", "lab1099", "lab1399", "MCQ99", "SMQ99", "MORT99"))
+rm(
+  list = c(
+    "ALQ99",
+    "BMX99",
+    "BPQ99",
+    "BPX99",
+    "DEMO99",
+    "DIQ99",
+    "HIQ99",
+    "HSQ99",
+    "HUQ99",
+    "KIQ99",
+    "lab399",
+    "lab1099",
+    "lab1399",
+    "MCQ99",
+    "SMQ99",
+    "MORT99"
+  )
+)
 
 #Now getting the 2001-2002 data:
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/ALQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/ALQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 ALQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/BMX_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/BMX_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BMX01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/BPQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/BPQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/BPX_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/BPX_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPX01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/DEMO_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/DEMO_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DEMO01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/DIQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/DIQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DIQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/HIQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/HIQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/HSQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/HSQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HSQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/HUQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/HUQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HUQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/KIQ_P_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/KIQ_P_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/KIQ_U_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/KIQ_U_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ01b <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L03_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L03_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab301 <- foreign::read.xport(tf)## Including Plots
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L10_2_b.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L10_2_b.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1001 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L10_b.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L10_b.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1001b <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L11P_2_b.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L11P_2_b.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 psa01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L11PSA_b.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L11PSA_b.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 psa01b <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L13_2_b.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L13_2_b.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1301 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L13_b.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/L13_b.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1301b <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/MCQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/MCQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 MCQ01 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/SMQ_B.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2001-2002/SMQ_B.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 SMQ01 <- foreign::read.xport(tf)
 
-dat01 <- full_join(x= ALQ01, y= BMX01, by=c("SEQN")) %>% full_join(y=BPQ01, by=c("SEQN")) %>% full_join(y=BPX01, by=c("SEQN")) %>% full_join(y=DEMO01, by=c("SEQN")) %>% full_join(y=DIQ01, by=c("SEQN")) %>% full_join(y=HIQ01, by=c("SEQN")) %>% full_join(y=HSQ01, by=c("SEQN")) %>% full_join(y=HUQ01, by=c("SEQN")) %>% full_join(y=KIQ01, by=c("SEQN")) %>% full_join(y=KIQ01b, by=c("SEQN")) %>% full_join(y=lab301, by=c("SEQN")) %>% full_join(y=lab1001, by=c("SEQN")) %>% full_join(y=lab1001b, by=c("SEQN")) %>% full_join(y=psa01, by=c("SEQN")) %>% full_join(y=psa01b, by=c("SEQN")) %>% full_join(y=lab1301, by=c("SEQN")) %>% full_join(y=lab1301b, by=c("SEQN")) %>% full_join(y=MCQ01, by=c("SEQN")) %>% full_join(y=SMQ01, by=c("SEQN")) %>% full_join(y=MORT01, by=c("SEQN"))
+dat01 <-
+  full_join(x = ALQ01, y = BMX01, by = c("SEQN")) %>% 
+  full_join(y = BPQ01, by = c("SEQN")) %>% 
+  full_join(y = BPX01, by = c("SEQN")) %>% 
+  full_join(y = DEMO01, by = c("SEQN")) %>% 
+  full_join(y = DIQ01, by = c("SEQN")) %>% 
+  full_join(y = HIQ01, by = c("SEQN")) %>% 
+  full_join(y = HSQ01, by = c("SEQN")) %>% 
+  full_join(y = HUQ01, by = c("SEQN")) %>% 
+  full_join(y = KIQ01, by = c("SEQN")) %>% 
+  full_join(y = KIQ01b, by = c("SEQN")) %>% 
+  full_join(y = lab301, by = c("SEQN")) %>% 
+  full_join(y = lab1001, by = c("SEQN")) %>% 
+  full_join(y = lab1001b, by = c("SEQN")) %>% 
+  full_join(y = psa01, by = c("SEQN")) %>% 
+  full_join(y = psa01b, by = c("SEQN")) %>% 
+  full_join(y = lab1301, by = c("SEQN")) %>% 
+  full_join(y = lab1301b, by = c("SEQN")) %>% 
+  full_join(y = MCQ01, by = c("SEQN")) %>% 
+  full_join(y = SMQ01, by = c("SEQN")) %>% 
+  full_join(y = MORT01, by = c("SEQN"))
 
-rm(list=c("ALQ01", "BMX01", "BPQ01", "BPX01", "DEMO01", "DIQ01", "HIQ01", "HSQ01", "HUQ01", "KIQ01", "KIQ01b", "lab301", "lab1001", "lab1001b", "psa01", "psa01b", "lab1301", "lab1301b", "MCQ01", "SMQ01", "MORT01"))
+rm(
+  list = c(
+    "ALQ01",
+    "BMX01",
+    "BPQ01",
+    "BPX01",
+    "DEMO01",
+    "DIQ01",
+    "HIQ01",
+    "HSQ01",
+    "HUQ01",
+    "KIQ01",
+    "KIQ01b",
+    "lab301",
+    "lab1001",
+    "lab1001b",
+    "psa01",
+    "psa01b",
+    "lab1301",
+    "lab1301b",
+    "MCQ01",
+    "SMQ01",
+    "MORT01"
+  )
+)
 
 #Now getting the 2003-2004 data:
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/ALQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/ALQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 ALQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/BMX_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/BMX_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BMX03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/BPQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/BPQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/BPX_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/BPX_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPX03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/DEMO_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/DEMO_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DEMO03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/DIQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/DIQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DIQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/HIQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/HIQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/HSQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/HSQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HSQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/HUQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/HUQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HUQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/KIQ_P_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/KIQ_P_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/KIQ_U_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/KIQ_U_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ03b <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L03_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L03_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab303 <- foreign::read.xport(tf)## Including Plots
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L10_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L10_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1003 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L11PSA_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L11PSA_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 psa03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L13_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/L13_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 lab1303 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/MCQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/MCQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 MCQ03 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/SMQ_C.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2003-2004/SMQ_C.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 SMQ03 <- foreign::read.xport(tf)
 
-dat03 <- full_join(x=ALQ03, y=BMX03, by=c("SEQN")) %>% full_join(y=BPQ03, by=c("SEQN")) %>% full_join(y=BPX03, by=c("SEQN")) %>% full_join(y=DEMO03, by=c("SEQN")) %>% full_join(y=DIQ03, by=c("SEQN")) %>% full_join(y=HIQ03, by=c("SEQN")) %>% full_join(y=HSQ03, by=c("SEQN")) %>% full_join(y=HUQ03, by=c("SEQN")) %>% full_join(y=KIQ03, by=c("SEQN")) %>% full_join(y=KIQ03b, by=c("SEQN")) %>% full_join(y=lab303, by=c("SEQN")) %>% full_join(y=lab1003, by=c("SEQN")) %>% full_join(y=psa03, by=c("SEQN")) %>% full_join(y=lab1303, by=c("SEQN")) %>% full_join(y=MCQ03, by=c("SEQN")) %>% full_join(y=SMQ03, by=c("SEQN")) %>% full_join(y=MORT03, by=c("SEQN"))
+dat03 <-
+  full_join(x = ALQ03, y = BMX03, by = c("SEQN")) %>% 
+  full_join(y = BPQ03, by = c("SEQN")) %>% 
+  full_join(y = BPX03, by = c("SEQN")) %>% 
+  full_join(y = DEMO03, by = c("SEQN")) %>% 
+  full_join(y = DIQ03, by = c("SEQN")) %>% 
+  full_join(y = HIQ03, by = c("SEQN")) %>% 
+  full_join(y = HSQ03, by = c("SEQN")) %>% 
+  full_join(y = HUQ03, by = c("SEQN")) %>% 
+  full_join(y = KIQ03, by = c("SEQN")) %>% 
+  full_join(y = KIQ03b, by = c("SEQN")) %>% 
+  full_join(y = lab303, by = c("SEQN")) %>% 
+  full_join(y = lab1003, by = c("SEQN")) %>% 
+  full_join(y = psa03, by = c("SEQN")) %>% 
+  full_join(y = lab1303, by = c("SEQN")) %>% 
+  full_join(y = MCQ03, by = c("SEQN")) %>% 
+  full_join(y = SMQ03, by = c("SEQN")) %>% 
+  full_join(y = MORT03, by = c("SEQN"))
 
-rm(list=c("ALQ03", "BMX03", "BPQ03", "BPX03", "DEMO03", "DIQ03", "HIQ03", "HSQ03", "HUQ03", "KIQ03", "KIQ03b", "lab303", "lab1003", "psa03", "lab1303", "MCQ03", "SMQ03", "MORT03"))
+rm(
+  list = c(
+    "ALQ03",
+    "BMX03",
+    "BPQ03",
+    "BPX03",
+    "DEMO03",
+    "DIQ03",
+    "HIQ03",
+    "HSQ03",
+    "HUQ03",
+    "KIQ03",
+    "KIQ03b",
+    "lab303",
+    "lab1003",
+    "psa03",
+    "lab1303",
+    "MCQ03",
+    "SMQ03",
+    "MORT03"
+  )
+)
 
 #Now getting the 2005-2006 data:
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/ALQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/ALQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 ALQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/BMX_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/BMX_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BMX05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/BPQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/BPQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/BPX_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/BPX_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPX05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/DEMO_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/DEMO_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DEMO05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/DIQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/DIQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DIQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HIQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HIQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HSQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HSQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HSQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HUQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HUQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HUQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/KIQ_P_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/KIQ_P_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/KIQ_U_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/KIQ_U_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ05b <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/PSA_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/PSA_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 psa05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/MCQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/MCQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 MCQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/SMQ_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/SMQ_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 SMQ05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/TCHOL_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/TCHOL_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 CHOL05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/GHB_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/GHB_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 GHB05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HDL_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HDL_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HDL05 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HIV_D.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2005-2006/HIV_D.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIV05 <- foreign::read.xport(tf)
 
-dat05 <- full_join(x=ALQ05, y=BMX05, by=c("SEQN")) %>% full_join(y=BPQ05, by=c("SEQN")) %>% full_join(y=BPX05, by=c("SEQN")) %>% full_join(y=DEMO05, by=c("SEQN")) %>% full_join(y=DIQ05, by=c("SEQN")) %>% full_join(y=HIQ05, by=c("SEQN")) %>% full_join(y=HSQ05, by=c("SEQN")) %>% full_join(y=HUQ05, by=c("SEQN")) %>% full_join(y=KIQ05, by=c("SEQN")) %>% full_join(y=KIQ05b, by=c("SEQN")) %>% full_join(y=psa05, by=c("SEQN")) %>% full_join(y=MCQ05, by=c("SEQN")) %>% full_join(y=SMQ05, by=c("SEQN")) %>% full_join(y=CHOL05, by=c("SEQN")) %>% full_join(y=GHB05, by=c("SEQN")) %>% full_join(y=HDL05, by=c("SEQN")) %>% full_join(y=MORT05, by=c("SEQN")) %>% full_join(y=HIV05, by=c("SEQN")) 
+dat05 <-
+  full_join(x = ALQ05, y = BMX05, by = c("SEQN")) %>% 
+  full_join(y = BPQ05, by = c("SEQN")) %>% 
+  full_join(y = BPX05, by = c("SEQN")) %>% 
+  full_join(y = DEMO05, by = c("SEQN")) %>% 
+  full_join(y = DIQ05, by = c("SEQN")) %>% 
+  full_join(y = HIQ05, by = c("SEQN")) %>% 
+  full_join(y = HSQ05, by = c("SEQN")) %>% 
+  full_join(y = HUQ05, by = c("SEQN")) %>% 
+  full_join(y = KIQ05, by = c("SEQN")) %>% 
+  full_join(y = KIQ05b, by = c("SEQN")) %>% 
+  full_join(y = psa05, by = c("SEQN")) %>% 
+  full_join(y = MCQ05, by = c("SEQN")) %>% 
+  full_join(y = SMQ05, by = c("SEQN")) %>% 
+  full_join(y = CHOL05, by = c("SEQN")) %>% 
+  full_join(y = GHB05, by = c("SEQN")) %>% 
+  full_join(y = HDL05, by = c("SEQN")) %>% 
+  full_join(y = MORT05, by = c("SEQN")) %>% 
+  full_join(y = HIV05, by = c("SEQN"))
 
-rm(list=c("ALQ05", "BMX05", "BPQ05", "BPX05", "DEMO05", "DIQ05", "HIQ05", "HSQ05", "HUQ05", "KIQ05", "KIQ05b", "psa05", "MCQ05", "SMQ05", "CHOL05", "GHB05", "HDL05", "MORT05", "HIV05"))
+rm(
+  list = c(
+    "ALQ05",
+    "BMX05",
+    "BPQ05",
+    "BPX05",
+    "DEMO05",
+    "DIQ05",
+    "HIQ05",
+    "HSQ05",
+    "HUQ05",
+    "KIQ05",
+    "KIQ05b",
+    "psa05",
+    "MCQ05",
+    "SMQ05",
+    "CHOL05",
+    "GHB05",
+    "HDL05",
+    "MORT05",
+    "HIV05"
+  )
+)
 
 #Now getting the 2007-2008 data:
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/ALQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/ALQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 ALQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/BMX_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/BMX_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BMX07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/BPQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/BPQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/BPX_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/BPX_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPX07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/DEMO_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/DEMO_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DEMO07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/DIQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/DIQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DIQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HIQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HIQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HSQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HSQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HSQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HUQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HUQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HUQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/KIQ_P_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/KIQ_P_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/KIQ_U_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/KIQ_U_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ07b <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/PSA_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/PSA_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 psa07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/MCQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/MCQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 MCQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/SMQ_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/SMQ_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 SMQ07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/TCHOL_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/TCHOL_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 CHOL07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/GHB_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/GHB_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 GHB07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HDL_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HDL_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HDL07 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HIV_E.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2007-2008/HIV_E.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIV07 <- foreign::read.xport(tf)
 
-dat07 <- full_join(x=ALQ07, y=BMX07, by=c("SEQN")) %>% full_join(y=BPQ07, by=c("SEQN")) %>% full_join(y=BPX07, by=c("SEQN")) %>% full_join(y=DEMO07, by=c("SEQN")) %>% full_join(y=DIQ07, by=c("SEQN")) %>% full_join(y=HIQ07, by=c("SEQN")) %>% full_join(y=HSQ07, by=c("SEQN")) %>% full_join(y=HUQ07, by=c("SEQN")) %>% full_join(y=KIQ07, by=c("SEQN")) %>% full_join(y=KIQ07b, by=c("SEQN")) %>% full_join(y=psa07, by=c("SEQN")) %>% full_join(y=MCQ07, by=c("SEQN")) %>% full_join(y=SMQ07, by=c("SEQN")) %>% full_join(y=CHOL07, by=c("SEQN")) %>% full_join(y=GHB07, by=c("SEQN")) %>% full_join(y=HDL07, by=c("SEQN")) %>% full_join(y=MORT07, by=c("SEQN")) %>% full_join(y=HIV07, by=c("SEQN"))
+dat07 <-
+  full_join(x = ALQ07, y = BMX07, by = c("SEQN")) %>% 
+  full_join(y = BPQ07, by = c("SEQN")) %>% 
+  full_join(y = BPX07, by = c("SEQN")) %>% 
+  full_join(y = DEMO07, by = c("SEQN")) %>% 
+  full_join(y = DIQ07, by = c("SEQN")) %>% 
+  full_join(y = HIQ07, by = c("SEQN")) %>% 
+  full_join(y = HSQ07, by = c("SEQN")) %>% 
+  full_join(y = HUQ07, by = c("SEQN")) %>% 
+  full_join(y = KIQ07, by = c("SEQN")) %>% 
+  full_join(y = KIQ07b, by = c("SEQN")) %>% 
+  full_join(y = psa07, by = c("SEQN")) %>% 
+  full_join(y = MCQ07, by = c("SEQN")) %>% 
+  full_join(y = SMQ07, by = c("SEQN")) %>% 
+  full_join(y = CHOL07, by = c("SEQN")) %>% 
+  full_join(y = GHB07, by = c("SEQN")) %>% 
+  full_join(y = HDL07, by = c("SEQN")) %>% 
+  full_join(y = MORT07, by = c("SEQN")) %>% 
+  full_join(y = HIV07, by = c("SEQN"))
 
-rm(list=c("ALQ07", "BMX07", "BPQ07", "BPX07", "DEMO07", "DIQ07", "HIQ07", "HSQ07", "HUQ07", "KIQ07", "KIQ07b", "psa07", "MCQ07", "SMQ07", "CHOL07", "GHB07", "HDL07", "MORT07", "HIV07"))
+rm(
+  list = c(
+    "ALQ07",
+    "BMX07",
+    "BPQ07",
+    "BPX07",
+    "DEMO07",
+    "DIQ07",
+    "HIQ07",
+    "HSQ07",
+    "HUQ07",
+    "KIQ07",
+    "KIQ07b",
+    "psa07",
+    "MCQ07",
+    "SMQ07",
+    "CHOL07",
+    "GHB07",
+    "HDL07",
+    "MORT07",
+    "HIV07"
+  )
+)
 
-#And finally the 2009-2010 data: 
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/ALQ_F.XPT", tf <- tempfile(), mode="wb")
+#And finally the 2009-2010 data:
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/ALQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 ALQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/BMX_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/BMX_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BMX09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/BPQ_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/BPQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/BPX_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/BPX_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 BPX09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/DEMO_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/DEMO_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DEMO09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/DIQ_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/DIQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 DIQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HIQ_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HIQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HSQ_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HSQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HSQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HUQ_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HUQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HUQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/KIQ_U_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/KIQ_U_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 KIQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/PSA_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/PSA_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 psa09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/MCQ_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/MCQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 MCQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/SMQ_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/SMQ_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 SMQ09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/TCHOL_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/TCHOL_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 CHOL09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/GHB_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/GHB_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 GHB09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HDL_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HDL_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HDL09 <- foreign::read.xport(tf)
-download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HIV_F.XPT", tf <- tempfile(), mode="wb")
+download.file("https://wwwn.cdc.gov/nchs/nhanes/2009-2010/HIV_F.XPT",
+              tf <- tempfile(),
+              mode = "wb")
 HIV09 <- foreign::read.xport(tf)
 
-dat09 <- full_join(x=ALQ09, y=BMX09, by=c("SEQN")) %>% full_join(y=BPQ09, by=c("SEQN")) %>% full_join(y=BPX09, by=c("SEQN")) %>% full_join(y=DEMO09, by=c("SEQN")) %>% full_join(y=DIQ09, by=c("SEQN")) %>% full_join(y=HIQ09, by=c("SEQN")) %>% full_join(y=HSQ09, by=c("SEQN")) %>% full_join(y=HUQ09, by=c("SEQN")) %>% full_join(y=KIQ09, by=c("SEQN")) %>% full_join(y=psa09, by=c("SEQN")) %>% full_join(y=MCQ09, by=c("SEQN")) %>% full_join(y=SMQ09, by=c("SEQN")) %>% full_join(y=CHOL09, by=c("SEQN")) %>% full_join(y=GHB09, by=c("SEQN")) %>% full_join(y=HDL09, by=c("SEQN")) %>% full_join(y=MORT09, by=c("SEQN")) %>% full_join(y=HIV09, by=c("SEQN"))
+dat09 <-
+  full_join(x = ALQ09, y = BMX09, by = c("SEQN")) %>% 
+  full_join(y = BPQ09, by = c("SEQN")) %>% 
+  full_join(y = BPX09, by = c("SEQN")) %>% 
+  full_join(y = DEMO09, by = c("SEQN")) %>% 
+  full_join(y = DIQ09, by = c("SEQN")) %>% 
+  full_join(y = HIQ09, by = c("SEQN")) %>% 
+  full_join(y = HSQ09, by = c("SEQN")) %>% 
+  full_join(y = HUQ09, by = c("SEQN")) %>% 
+  full_join(y = KIQ09, by = c("SEQN")) %>% 
+  full_join(y = psa09, by = c("SEQN")) %>% 
+  full_join(y = MCQ09, by = c("SEQN")) %>% 
+  full_join(y = SMQ09, by = c("SEQN")) %>% 
+  full_join(y = CHOL09, by = c("SEQN")) %>% 
+  full_join(y = GHB09, by = c("SEQN")) %>% 
+  full_join(y = HDL09, by = c("SEQN")) %>% 
+  full_join(y = MORT09, by = c("SEQN")) %>% 
+  full_join(y = HIV09, by = c("SEQN"))
 
-rm(list=c("ALQ09", "BMX09", "BPQ09", "BPX09", "DEMO09", "DIQ09", "HIQ09", "HSQ09", "HUQ09", "KIQ09", "psa09", "MCQ09", "SMQ09", "CHOL09", "GHB09", "HDL09", "MORT09", "HIV09"))
+rm(
+  list = c(
+    "ALQ09",
+    "BMX09",
+    "BPQ09",
+    "BPX09",
+    "DEMO09",
+    "DIQ09",
+    "HIQ09",
+    "HSQ09",
+    "HUQ09",
+    "KIQ09",
+    "psa09",
+    "MCQ09",
+    "SMQ09",
+    "CHOL09",
+    "GHB09",
+    "HDL09",
+    "MORT09",
+    "HIV09"
+  )
+)
 ```
 
 ## Data Combination
@@ -414,7 +897,94 @@ rm(list=c("ALQ09", "BMX09", "BPQ09", "BPX09", "DEMO09", "DIQ09", "HIQ09", "HSQ09
 Now we make necessary modifications to each year of data so we can stack them all up:
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 #1999-2000 data:
-dat99 <- mutate(dat99, ALQ101 = ALQ100, HUQ071 = HUQ070, KIQ022 = KIQ020, KIQ121 = KIQ120, KIQ182 = KIQ180, KIQ201 = KIQ200, KIQ221 = KIQ220, KIQ241 = KIQ240, KIQ301 = KIQ300) %>% select(SEQN, ALQ101, ALQ110, ALQ130, BMXBMI, BPQ020, BPQ080, BPXSY1, BPXSY2, BPXSY3, BPXSY4, BPXDI1, BPXDI2, BPXDI3, BPXDI4, SDDSRVYR, RIAGENDR, RIDAGEYR, RIDRETH1, DMQMILIT, DMDBORN, DMDEDUC2, DMDMARTL, INDFMPIR, WTMEC2YR, WTMEC4YR, SDMVPSU, SDMVSTRA, DIQ010, DIQ050, HID010, HID030A, HID030B, HID030C, HID030D, HID030E, HUQ030, HUQ071, KIQ022, KIQ121, KIQ182, KIQ201, KIQ221, KIQ241, KIQ301, LBDHI, LBXGH, LBXTC, LBDHDL, MCQ010, MCQ053, MCQ080, MCQ160A, MCQ160B, MCQ160C, MCQ160D, MCQ160E, MCQ160F, MCQ160G, MCQ160J, MCQ160K, MCQ160L, MCQ220, MCQ230A, MCQ230B, MCQ230C, MCQ230D, MCQ240U, SMQ020, SMQ040, eligstat, mortstat, permth_exm, ucod_leading)
+dat99 <-
+  mutate(
+    dat99,
+    ALQ101 = ALQ100,
+    HUQ071 = HUQ070,
+    KIQ022 = KIQ020,
+    KIQ121 = KIQ120,
+    KIQ182 = KIQ180,
+    KIQ201 = KIQ200,
+    KIQ221 = KIQ220,
+    KIQ241 = KIQ240,
+    KIQ301 = KIQ300
+  ) %>% select(
+    SEQN,
+    ALQ101,
+    ALQ110,
+    ALQ130,
+    BMXBMI,
+    BPQ020,
+    BPQ080,
+    BPXSY1,
+    BPXSY2,
+    BPXSY3,
+    BPXSY4,
+    BPXDI1,
+    BPXDI2,
+    BPXDI3,
+    BPXDI4,
+    SDDSRVYR,
+    RIAGENDR,
+    RIDAGEYR,
+    RIDRETH1,
+    DMQMILIT,
+    DMDBORN,
+    DMDEDUC2,
+    DMDMARTL,
+    INDFMPIR,
+    WTMEC2YR,
+    WTMEC4YR,
+    SDMVPSU,
+    SDMVSTRA,
+    DIQ010,
+    DIQ050,
+    HID010,
+    HID030A,
+    HID030B,
+    HID030C,
+    HID030D,
+    HID030E,
+    HUQ030,
+    HUQ071,
+    KIQ022,
+    KIQ121,
+    KIQ182,
+    KIQ201,
+    KIQ221,
+    KIQ241,
+    KIQ301,
+    LBDHI,
+    LBXGH,
+    LBXTC,
+    LBDHDL,
+    MCQ010,
+    MCQ053,
+    MCQ080,
+    MCQ160A,
+    MCQ160B,
+    MCQ160C,
+    MCQ160D,
+    MCQ160E,
+    MCQ160F,
+    MCQ160G,
+    MCQ160J,
+    MCQ160K,
+    MCQ160L,
+    MCQ220,
+    MCQ230A,
+    MCQ230B,
+    MCQ230C,
+    MCQ230D,
+    MCQ240U,
+    SMQ020,
+    SMQ040,
+    eligstat,
+    mortstat,
+    permth_exm,
+    ucod_leading
+  )
 
 dat99$HSQ480 <- NA
 dat99$HUQ090 <- NA
@@ -437,7 +1007,93 @@ dat99$HIQ031J <- NA
 dat99$DMDBORN2 <- NA
 
 #2001-2002 data:
-dat01 <- mutate(dat01, ALQ101 = ALD100, HUQ071 = HUD070, KIQ182 = KID182) %>% select(SEQN, ALQ101, ALQ110, ALQ130, BMXBMI, BPQ020, BPQ080, BPXSY1, BPXSY2, BPXSY3, BPXSY4, BPXDI1, BPXDI2, BPXDI3, BPXDI4, SDDSRVYR, RIAGENDR, RIDAGEYR, RIDRETH1, DMQMILIT, DMDBORN, DMDEDUC2, DMDMARTL, INDFMPIR, WTMEC2YR, WTMEC4YR, SDMVPSU, SDMVSTRA, DIQ010, DIQ050, HID010, HID030A, HID030B, HID030C, HID030D, HID030E, HSQ480, HUQ030, HUQ071, HUQ090,KIQ121, KIQ182, KIQ022, LBDHI, LBXGH, KIQ201, KIQ221, KIQ241, KIQ281, KIQ301, KIQ311, LBXP1, LBXP2, LBDP3, LBDHDL, LBXTC, MCQ010, MCQ053, MCQ080, MCQ160A, MCQ160B, MCQ160C, MCQ160D, MCQ160E, MCQ160F, MCQ160G, MCQ160J, MCQ160K, MCQ160L, MCQ220, MCQ230A, MCQ230B, MCQ230C, MCQ230D, MCQ240U, SMQ020, SMQ040, eligstat, mortstat, permth_exm, ucod_leading)
+dat01 <-
+  mutate(dat01,
+         ALQ101 = ALD100,
+         HUQ071 = HUD070,
+         KIQ182 = KID182) %>% select(
+           SEQN,
+           ALQ101,
+           ALQ110,
+           ALQ130,
+           BMXBMI,
+           BPQ020,
+           BPQ080,
+           BPXSY1,
+           BPXSY2,
+           BPXSY3,
+           BPXSY4,
+           BPXDI1,
+           BPXDI2,
+           BPXDI3,
+           BPXDI4,
+           SDDSRVYR,
+           RIAGENDR,
+           RIDAGEYR,
+           RIDRETH1,
+           DMQMILIT,
+           DMDBORN,
+           DMDEDUC2,
+           DMDMARTL,
+           INDFMPIR,
+           WTMEC2YR,
+           WTMEC4YR,
+           SDMVPSU,
+           SDMVSTRA,
+           DIQ010,
+           DIQ050,
+           HID010,
+           HID030A,
+           HID030B,
+           HID030C,
+           HID030D,
+           HID030E,
+           HSQ480,
+           HUQ030,
+           HUQ071,
+           HUQ090,
+           KIQ121,
+           KIQ182,
+           KIQ022,
+           LBDHI,
+           LBXGH,
+           KIQ201,
+           KIQ221,
+           KIQ241,
+           KIQ281,
+           KIQ301,
+           KIQ311,
+           LBXP1,
+           LBXP2,
+           LBDP3,
+           LBDHDL,
+           LBXTC,
+           MCQ010,
+           MCQ053,
+           MCQ080,
+           MCQ160A,
+           MCQ160B,
+           MCQ160C,
+           MCQ160D,
+           MCQ160E,
+           MCQ160F,
+           MCQ160G,
+           MCQ160J,
+           MCQ160K,
+           MCQ160L,
+           MCQ220,
+           MCQ230A,
+           MCQ230B,
+           MCQ230C,
+           MCQ230D,
+           MCQ240U,
+           SMQ020,
+           SMQ040,
+           eligstat,
+           mortstat,
+           permth_exm,
+           ucod_leading
+         )
 
 dat01$HIQ031A <- NA
 dat01$HIQ031B <- NA
@@ -452,11 +1108,93 @@ dat01$HIQ031J <- NA
 dat01$DMDBORN2 <- NA
 dat01$LBXPS4 <- NA
 
-#2003-2004 data: 
+#2003-2004 data:
 test <- as.numeric(as.character(dat03$KID221))
-test[which(dat03$KID221=="85 or greater years")] <- 85
+test[which(dat03$KID221 == "85 or greater years")] <- 85
 
-dat03 <- mutate(dat03, LBDHDL = LBXHDD, KIQ221 = test) %>% select(SEQN, ALQ101, ALQ110, ALQ130, BMXBMI, BPQ020, BPQ080, BPXSY1, BPXSY2, BPXSY3, BPXSY4, BPXDI1, BPXDI2, BPXDI3, BPXDI4, SDDSRVYR, RIAGENDR, RIDAGEYR, RIDRETH1, DMQMILIT, DMDBORN, DMDEDUC2, DMDMARTL, INDFMPIR, WTMEC2YR, SDMVPSU, SDMVSTRA, DIQ010, DIQ050, HID010, HID030A, HID030B, HID030C, HID030D, HID030E, HSQ480, HUQ030, HUQ071, HUQ090, KIQ121, KIQ182, KIQ022, LBXGH, LBDHI, KIQ201, KIQ221, KIQ241, KIQ281, KIQ301, KIQ311, LBXP1, LBXP2, LBDP3, LBDHDL, LBXTC, MCQ010, MCQ053, MCQ080, MCQ160A, MCQ160B, MCQ160C, MCQ160D, MCQ160E, MCQ160F, MCQ160G, MCQ160J, MCQ160K, MCQ160L, MCQ220, MCQ230A, MCQ230B, MCQ230C, MCQ230D, MCQ240U, SMQ020, SMQ040, eligstat, mortstat, permth_exm, ucod_leading)
+dat03 <-
+  mutate(dat03, LBDHDL = LBXHDD, KIQ221 = test) %>% select(
+    SEQN,
+    ALQ101,
+    ALQ110,
+    ALQ130,
+    BMXBMI,
+    BPQ020,
+    BPQ080,
+    BPXSY1,
+    BPXSY2,
+    BPXSY3,
+    BPXSY4,
+    BPXDI1,
+    BPXDI2,
+    BPXDI3,
+    BPXDI4,
+    SDDSRVYR,
+    RIAGENDR,
+    RIDAGEYR,
+    RIDRETH1,
+    DMQMILIT,
+    DMDBORN,
+    DMDEDUC2,
+    DMDMARTL,
+    INDFMPIR,
+    WTMEC2YR,
+    SDMVPSU,
+    SDMVSTRA,
+    DIQ010,
+    DIQ050,
+    HID010,
+    HID030A,
+    HID030B,
+    HID030C,
+    HID030D,
+    HID030E,
+    HSQ480,
+    HUQ030,
+    HUQ071,
+    HUQ090,
+    KIQ121,
+    KIQ182,
+    KIQ022,
+    LBXGH,
+    LBDHI,
+    KIQ201,
+    KIQ221,
+    KIQ241,
+    KIQ281,
+    KIQ301,
+    KIQ311,
+    LBXP1,
+    LBXP2,
+    LBDP3,
+    LBDHDL,
+    LBXTC,
+    MCQ010,
+    MCQ053,
+    MCQ080,
+    MCQ160A,
+    MCQ160B,
+    MCQ160C,
+    MCQ160D,
+    MCQ160E,
+    MCQ160F,
+    MCQ160G,
+    MCQ160J,
+    MCQ160K,
+    MCQ160L,
+    MCQ220,
+    MCQ230A,
+    MCQ230B,
+    MCQ230C,
+    MCQ230D,
+    MCQ240U,
+    SMQ020,
+    SMQ040,
+    eligstat,
+    mortstat,
+    permth_exm,
+    ucod_leading
+  )
 
 dat03$WTMEC4YR <- NA
 dat03$HIQ031A <- NA
@@ -474,9 +1212,101 @@ dat03$LBXPS4 <- NA
 
 #2005-2006 data:
 test <- as.numeric(as.character(dat05$KID221))
-test[which(dat05$KID221=="85 or greater years")] <- 85
+test[which(dat05$KID221 == "85 or greater years")] <- 85
 
-dat05 <- mutate(dat05, LBDHDL = LBDHDD, HID010 = HIQ011, KIQ281 = KIQ282, KIQ221 = test) %>% select(SEQN, ALQ101, ALQ110, ALQ130, BMXBMI, BPQ020, BPQ080, BPXSY1, BPXSY2, BPXSY3, BPXSY4, BPXDI1, BPXDI2, BPXDI3, BPXDI4, SDDSRVYR, RIAGENDR, RIDAGEYR, RIDRETH1, DMQMILIT, DMDBORN, DMDEDUC2, DMDMARTL, INDFMPIR, WTMEC2YR, SDMVPSU, SDMVSTRA, DIQ010, DIQ050, LBXGH, LBDHDL, HID010, HIQ031A, HIQ031B, HIQ031C, HIQ031D, HIQ031E, HIQ031F, HIQ031G, HIQ031H, HIQ031I, HIQ031J, HSQ480, HUQ030, HUQ071, HUQ090, KIQ121, KIQ182, KIQ022, MCQ010, MCQ053, MCQ080, MCQ160A, MCQ160B, MCQ160C, MCQ160D, MCQ160E, MCQ160F, MCQ160G, MCQ160K, MCQ160L, MCQ220, MCQ230A, MCQ230B, MCQ230C, MCQ230D, MCQ240U, KIQ201, KIQ221, KIQ241, KIQ281, KIQ301, KIQ311, LBXP1, LBXP2, LBDP3, SMQ020, SMQ040, LBXTC, eligstat, mortstat, permth_exm, ucod_leading, LBDHI)
+dat05 <-
+  mutate(
+    dat05,
+    LBDHDL = LBDHDD,
+    HID010 = HIQ011,
+    KIQ281 = KIQ282,
+    KIQ221 = test
+  ) %>% select(
+    SEQN,
+    ALQ101,
+    ALQ110,
+    ALQ130,
+    BMXBMI,
+    BPQ020,
+    BPQ080,
+    BPXSY1,
+    BPXSY2,
+    BPXSY3,
+    BPXSY4,
+    BPXDI1,
+    BPXDI2,
+    BPXDI3,
+    BPXDI4,
+    SDDSRVYR,
+    RIAGENDR,
+    RIDAGEYR,
+    RIDRETH1,
+    DMQMILIT,
+    DMDBORN,
+    DMDEDUC2,
+    DMDMARTL,
+    INDFMPIR,
+    WTMEC2YR,
+    SDMVPSU,
+    SDMVSTRA,
+    DIQ010,
+    DIQ050,
+    LBXGH,
+    LBDHDL,
+    HID010,
+    HIQ031A,
+    HIQ031B,
+    HIQ031C,
+    HIQ031D,
+    HIQ031E,
+    HIQ031F,
+    HIQ031G,
+    HIQ031H,
+    HIQ031I,
+    HIQ031J,
+    HSQ480,
+    HUQ030,
+    HUQ071,
+    HUQ090,
+    KIQ121,
+    KIQ182,
+    KIQ022,
+    MCQ010,
+    MCQ053,
+    MCQ080,
+    MCQ160A,
+    MCQ160B,
+    MCQ160C,
+    MCQ160D,
+    MCQ160E,
+    MCQ160F,
+    MCQ160G,
+    MCQ160K,
+    MCQ160L,
+    MCQ220,
+    MCQ230A,
+    MCQ230B,
+    MCQ230C,
+    MCQ230D,
+    MCQ240U,
+    KIQ201,
+    KIQ221,
+    KIQ241,
+    KIQ281,
+    KIQ301,
+    KIQ311,
+    LBXP1,
+    LBXP2,
+    LBDP3,
+    SMQ020,
+    SMQ040,
+    LBXTC,
+    eligstat,
+    mortstat,
+    permth_exm,
+    ucod_leading,
+    LBDHI
+  )
 
 dat05$WTMEC4YR <- NA
 dat05$HID030A <- NA
@@ -489,7 +1319,97 @@ dat05$DMDBORN2 <- NA
 dat05$LBXPS4 <- NA
 
 #2007-2008 data:
-dat07 <- mutate(dat07, LBDHDL = LBDHDD, HID010 = HIQ011, KIQ281 = KIQ282) %>% select(SEQN, ALQ101, ALQ110, ALQ130, BMXBMI, BPQ020, BPQ080, BPXSY1, BPXSY2, BPXSY3, BPXSY4, BPXDI1, BPXDI2, BPXDI3, BPXDI4, SDDSRVYR, RIAGENDR, RIDAGEYR, RIDRETH1, DMQMILIT, DMDBORN2, DMDEDUC2, DMDMARTL, INDFMPIR, WTMEC2YR, SDMVPSU, SDMVSTRA, DIQ010, DIQ050, LBXGH, LBDHDL, HID010, HIQ031A, HIQ031B, HIQ031C, HIQ031D, HIQ031E, HIQ031F, HIQ031G, HIQ031H, HIQ031I, HIQ031J, HSQ480, HUQ030, HUQ071, HUQ090, KIQ121, KIQ182, KIQ022, MCQ010, MCQ053, MCQ080, MCQ160A, MCQ160B, MCQ160C, MCQ160D, MCQ160E, MCQ160F, MCQ160G, MCQ160K, MCQ160L, MCQ220, MCQ230A, MCQ230B, MCQ230C, MCQ230D, MCQ240U, KIQ201, KIQ221, KIQ241, KIQ281, KIQ301, KIQ311, LBXP1, LBXP2, LBDP3, LBXPS4, SMQ020, SMQ040, LBXTC, eligstat, mortstat, permth_exm, ucod_leading, LBDHI)
+dat07 <-
+  mutate(dat07,
+         LBDHDL = LBDHDD,
+         HID010 = HIQ011,
+         KIQ281 = KIQ282) %>% select(
+           SEQN,
+           ALQ101,
+           ALQ110,
+           ALQ130,
+           BMXBMI,
+           BPQ020,
+           BPQ080,
+           BPXSY1,
+           BPXSY2,
+           BPXSY3,
+           BPXSY4,
+           BPXDI1,
+           BPXDI2,
+           BPXDI3,
+           BPXDI4,
+           SDDSRVYR,
+           RIAGENDR,
+           RIDAGEYR,
+           RIDRETH1,
+           DMQMILIT,
+           DMDBORN2,
+           DMDEDUC2,
+           DMDMARTL,
+           INDFMPIR,
+           WTMEC2YR,
+           SDMVPSU,
+           SDMVSTRA,
+           DIQ010,
+           DIQ050,
+           LBXGH,
+           LBDHDL,
+           HID010,
+           HIQ031A,
+           HIQ031B,
+           HIQ031C,
+           HIQ031D,
+           HIQ031E,
+           HIQ031F,
+           HIQ031G,
+           HIQ031H,
+           HIQ031I,
+           HIQ031J,
+           HSQ480,
+           HUQ030,
+           HUQ071,
+           HUQ090,
+           KIQ121,
+           KIQ182,
+           KIQ022,
+           MCQ010,
+           MCQ053,
+           MCQ080,
+           MCQ160A,
+           MCQ160B,
+           MCQ160C,
+           MCQ160D,
+           MCQ160E,
+           MCQ160F,
+           MCQ160G,
+           MCQ160K,
+           MCQ160L,
+           MCQ220,
+           MCQ230A,
+           MCQ230B,
+           MCQ230C,
+           MCQ230D,
+           MCQ240U,
+           KIQ201,
+           KIQ221,
+           KIQ241,
+           KIQ281,
+           KIQ301,
+           KIQ311,
+           LBXP1,
+           LBXP2,
+           LBDP3,
+           LBXPS4,
+           SMQ020,
+           SMQ040,
+           LBXTC,
+           eligstat,
+           mortstat,
+           permth_exm,
+           ucod_leading,
+           LBDHI
+         )
 
 dat07$DMDBORN <- NA
 dat07$WTMEC4YR <- NA
@@ -501,7 +1421,97 @@ dat07$HID030E <- NA
 dat07$MCQ160J <- NA
 
 #2009-2010 data:
-dat09 <- mutate(dat09, LBDHDL = LBDHDD, HID010 = HIQ011, KIQ281 = KIQ282, KIQ221 = KID221) %>% select(SEQN, ALQ101, ALQ110, ALQ130, BMXBMI, BPQ020, BPQ080, BPXSY1, BPXSY2, BPXSY3, BPXSY4, BPXDI1, BPXDI2, BPXDI3, BPXDI4, SDDSRVYR, RIAGENDR, RIDAGEYR, RIDRETH1, DMQMILIT, DMDBORN2, DMDEDUC2, DMDMARTL, INDFMPIR, WTMEC2YR, SDMVPSU, SDMVSTRA, DIQ010, DIQ050, LBXGH, LBDHDL, HID010, HIQ031A, HIQ031B, HIQ031C, HIQ031D, HIQ031E, HIQ031F, HIQ031H, HIQ031I, HIQ031J, HSQ480, HUQ030, HUQ071, HUQ090, KIQ022, MCQ010, MCQ053, MCQ080, MCQ160A, MCQ160B, MCQ160C, MCQ160D, MCQ160E, MCQ160F, MCQ160G, MCQ160K, MCQ160L, MCQ220, MCQ230A, MCQ230B, MCQ230C, MCQ230D, MCQ240U, KIQ201, KIQ221, KIQ241, KIQ281, KIQ301, KIQ311, LBXP1, LBXP2, LBDP3, LBXPS4, SMQ020, SMQ040, LBXTC, eligstat, mortstat, permth_exm, ucod_leading, LBDHI)
+dat09 <-
+  mutate(
+    dat09,
+    LBDHDL = LBDHDD,
+    HID010 = HIQ011,
+    KIQ281 = KIQ282,
+    KIQ221 = KID221
+  ) %>% select(
+    SEQN,
+    ALQ101,
+    ALQ110,
+    ALQ130,
+    BMXBMI,
+    BPQ020,
+    BPQ080,
+    BPXSY1,
+    BPXSY2,
+    BPXSY3,
+    BPXSY4,
+    BPXDI1,
+    BPXDI2,
+    BPXDI3,
+    BPXDI4,
+    SDDSRVYR,
+    RIAGENDR,
+    RIDAGEYR,
+    RIDRETH1,
+    DMQMILIT,
+    DMDBORN2,
+    DMDEDUC2,
+    DMDMARTL,
+    INDFMPIR,
+    WTMEC2YR,
+    SDMVPSU,
+    SDMVSTRA,
+    DIQ010,
+    DIQ050,
+    LBXGH,
+    LBDHDL,
+    HID010,
+    HIQ031A,
+    HIQ031B,
+    HIQ031C,
+    HIQ031D,
+    HIQ031E,
+    HIQ031F,
+    HIQ031H,
+    HIQ031I,
+    HIQ031J,
+    HSQ480,
+    HUQ030,
+    HUQ071,
+    HUQ090,
+    KIQ022,
+    MCQ010,
+    MCQ053,
+    MCQ080,
+    MCQ160A,
+    MCQ160B,
+    MCQ160C,
+    MCQ160D,
+    MCQ160E,
+    MCQ160F,
+    MCQ160G,
+    MCQ160K,
+    MCQ160L,
+    MCQ220,
+    MCQ230A,
+    MCQ230B,
+    MCQ230C,
+    MCQ230D,
+    MCQ240U,
+    KIQ201,
+    KIQ221,
+    KIQ241,
+    KIQ281,
+    KIQ301,
+    KIQ311,
+    LBXP1,
+    LBXP2,
+    LBDP3,
+    LBXPS4,
+    SMQ020,
+    SMQ040,
+    LBXTC,
+    eligstat,
+    mortstat,
+    permth_exm,
+    ucod_leading,
+    LBDHI
+  )
 
 dat09$DMDBORN <- NA
 dat09$WTMEC4YR <- NA
@@ -523,108 +1533,539 @@ bigdat <- rbind(dat99, dat01, dat03, dat05, dat07, dat09)
 And now we define any desired variables and deal with missingness:
 ```{r, echo=TRUE, message=FALSE, warning=FALSE}
 #Obtaining blood pressure measurements per NHANES recommendations:
-bigdat$bpxsy <- ifelse(is.na(bigdat$BPXSY1) & is.na(bigdat$BPXSY2) & is.na(bigdat$BPXSY3) & is.na(bigdat$BPXSY4), NA_real_, ifelse(is.na(bigdat$BPXSY2) & is.na(bigdat$BPXSY3) & is.na(bigdat$BPXSY4), bigdat$BPXSY1, ifelse(is.na(bigdat$BPXSY3) & is.na(bigdat$BPXSY4), bigdat$BPXSY2, ifelse(is.na(bigdat$BPXSY4), (bigdat$BPXSY2 + bigdat$BPXSY3)/2, (bigdat$BPXSY2 + bigdat$BPXSY3 + bigdat$BPXSY4)/2)))) #systolic
+bigdat$bpxsy <-
+  ifelse(
+    is.na(bigdat$BPXSY1) &
+      is.na(bigdat$BPXSY2) &
+      is.na(bigdat$BPXSY3) &
+      is.na(bigdat$BPXSY4),
+    NA_real_,
+    ifelse(
+      is.na(bigdat$BPXSY2) &
+        is.na(bigdat$BPXSY3) &
+        is.na(bigdat$BPXSY4),
+      bigdat$BPXSY1,
+      ifelse(
+        is.na(bigdat$BPXSY3) &
+          is.na(bigdat$BPXSY4),
+        bigdat$BPXSY2,
+        ifelse(
+          is.na(bigdat$BPXSY4),
+          (bigdat$BPXSY2 + bigdat$BPXSY3) / 2,
+          (bigdat$BPXSY2 + bigdat$BPXSY3 + bigdat$BPXSY4) / 2
+        )
+      )
+    )
+  ) #systolic
 
-bigdat$bpxdi <- ifelse(is.na(bigdat$BPXDI1) & is.na(bigdat$BPXDI2) & is.na(bigdat$BPXDI3) & is.na(bigdat$BPXDI4), NA_real_, ifelse(is.na(bigdat$BPXDI2) & is.na(bigdat$BPXDI3) & is.na(bigdat$BPXDI4), bigdat$BPXDI1, ifelse(is.na(bigdat$BPXDI3) & is.na(bigdat$BPXDI4), bigdat$BPXDI2, ifelse(is.na(bigdat$BPXDI4), (bigdat$BPXDI2 + bigdat$BPXDI3)/2, (bigdat$BPXDI2 + bigdat$BPXDI3 + bigdat$BPXDI4)/2)))) #diastolic
+bigdat$bpxdi <-
+  ifelse(
+    is.na(bigdat$BPXDI1) &
+      is.na(bigdat$BPXDI2) &
+      is.na(bigdat$BPXDI3) &
+      is.na(bigdat$BPXDI4),
+    NA_real_,
+    ifelse(
+      is.na(bigdat$BPXDI2) &
+        is.na(bigdat$BPXDI3) &
+        is.na(bigdat$BPXDI4),
+      bigdat$BPXDI1,
+      ifelse(
+        is.na(bigdat$BPXDI3) &
+          is.na(bigdat$BPXDI4),
+        bigdat$BPXDI2,
+        ifelse(
+          is.na(bigdat$BPXDI4),
+          (bigdat$BPXDI2 + bigdat$BPXDI3) / 2,
+          (bigdat$BPXDI2 + bigdat$BPXDI3 + bigdat$BPXDI4) / 2
+        )
+      )
+    )
+  ) #diastolic
 
-bigdat$hypertension <- ifelse((is.na(bigdat$bpxsy) | is.na(bigdat$bpxdi)) & (is.na(bigdat$BPQ020) | bigdat$BPQ020 ==7 | bigdat$BPQ020==9), NA_real_, ifelse((bigdat$bpxsy >= 140 & bigdat$bpxdi >= 90) | bigdat$BPQ020==1, 1, 0)) #diagnosis of hypertension based on self-report and blood pressure measurement
+bigdat$hypertension <-
+  ifelse((is.na(bigdat$bpxsy) |
+            is.na(bigdat$bpxdi)) &
+           (is.na(bigdat$BPQ020) |
+              bigdat$BPQ020 == 7 |
+              bigdat$BPQ020 == 9),
+         NA_real_,
+         ifelse((bigdat$bpxsy >= 140 &
+                   bigdat$bpxdi >= 90) |
+                  bigdat$BPQ020 == 1, 1, 0)
+  ) #diagnosis of hypertension based on self-report and blood pressure measurement
 
 #Redefining missing values:
-bigdat$DMQMILIT <- ifelse(bigdat$DMQMILIT==7 | bigdat$DMQMILIT==9, NA_real_, bigdat$DMQMILIT) #military service
+bigdat$DMQMILIT <-
+  ifelse(bigdat$DMQMILIT == 7 |
+           bigdat$DMQMILIT == 9,
+         NA_real_,
+         bigdat$DMQMILIT) #military service
 
-bigdat$insurance <- ifelse(bigdat$HID010==7 | bigdat$HID010==9 | is.na(bigdat$HID010), NA_real_, ifelse(bigdat$HID010==1, 1, 0)) #insurance status
+bigdat$insurance <-
+  ifelse(
+    bigdat$HID010 == 7 |
+      bigdat$HID010 == 9 |
+      is.na(bigdat$HID010),
+    NA_real_,
+    ifelse(bigdat$HID010 == 1, 1, 0)
+  ) #insurance status
 
-bigdat$care <- ifelse(bigdat$HUQ030==7 | bigdat$HUQ030==9 | is.na(bigdat$HUQ030), NA_real_, ifelse(bigdat$HUQ030==1 | bigdat$HUQ030==3, 1, 0)) #regular source of health care
+bigdat$care <-
+  ifelse(
+    bigdat$HUQ030 == 7 |
+      bigdat$HUQ030 == 9 |
+      is.na(bigdat$HUQ030),
+    NA_real_,
+    ifelse(bigdat$HUQ030 == 1 |
+             bigdat$HUQ030 == 3, 1, 0)
+  ) #regular source of health care
 
-bigdat$hospital <- ifelse(bigdat$HUQ071==7 | bigdat$HUQ071==9 | is.na(bigdat$HUQ071), NA_real_, ifelse(bigdat$HUQ071==1, 1, 0)) #hospitalization in last year
+bigdat$hospital <-
+  ifelse(
+    bigdat$HUQ071 == 7 |
+      bigdat$HUQ071 == 9 |
+      is.na(bigdat$HUQ071),
+    NA_real_,
+    ifelse(bigdat$HUQ071 == 1, 1, 0)
+  ) #hospitalization in last year
 
-bigdat$DMDEDUC2 <- ifelse(bigdat$DMDEDUC2==7 | bigdat$DMDEDUC2==9, NA_real_, bigdat$DMDEDUC2)
+bigdat$DMDEDUC2 <-
+  ifelse(bigdat$DMDEDUC2 == 7 |
+           bigdat$DMDEDUC2 == 9,
+         NA_real_,
+         bigdat$DMDEDUC2)
 
-bigdat$DMDMARTL <- ifelse(bigdat$DMDMARTL==77 | bigdat$DMDMARTL==99, NA_real_, bigdat$DMDMARTL)
+bigdat$DMDMARTL <-
+  ifelse(bigdat$DMDMARTL == 77 |
+           bigdat$DMDMARTL == 99,
+         NA_real_,
+         bigdat$DMDMARTL)
 
 #Defining birth place:
-bigdat$usbirth <- ifelse(bigdat$DMDBORN==1, 1, ifelse(bigdat$DMDBORN==2, 2, ifelse(bigdat$DMDBORN==3, 3, ifelse(bigdat$DMDBORN==7 | bigdat$DMDBORN==9, NA_real_, ifelse(bigdat$DMDBORN2==1, 1, ifelse(bigdat$DMDBORN2==2, 2, ifelse(bigdat$DMDBORN2==4 | bigdat$DMDBORN2==5, 3, NA_real_))))))) #born in U.S., Mexico, or outside of U.S. (non-Mexico)
+bigdat$usbirth <-
+  ifelse(bigdat$DMDBORN == 1, 1, ifelse(bigdat$DMDBORN == 2, 2, ifelse(
+    bigdat$DMDBORN == 3,
+    3,
+    ifelse(
+      bigdat$DMDBORN == 7 |
+        bigdat$DMDBORN == 9,
+      NA_real_,
+      ifelse(bigdat$DMDBORN2 == 1, 1, ifelse(
+        bigdat$DMDBORN2 == 2,
+        2,
+        ifelse(bigdat$DMDBORN2 == 4 |
+                 bigdat$DMDBORN2 == 5, 3, NA_real_)
+      ))
+    )
+  ))) #born in U.S., Mexico, or outside of U.S. (non-Mexico)
 
 #Defining medical conditions:
-bigdat$highchol <- ifelse(is.na(bigdat$LBXTC) & (is.na(bigdat$BPQ080) | bigdat$BPQ080==7 | bigdat$BPQ080==9), NA_real_, ifelse(bigdat$LBXTC >= 240 | bigdat$BPQ080==1, 1, 0)) #high cholesterol, based on lab and self-report
+bigdat$highchol <-
+  ifelse(
+    is.na(bigdat$LBXTC) &
+      (is.na(bigdat$BPQ080) |
+         bigdat$BPQ080 == 7 |
+         bigdat$BPQ080 == 9),
+    NA_real_,
+    ifelse(bigdat$LBXTC >= 240 |
+             bigdat$BPQ080 == 1, 1, 0)
+  ) #high cholesterol, based on lab and self-report
 
-bigdat$diabetic <- ifelse(is.na(bigdat$LBXGH) & (is.na(bigdat$DIQ010) | bigdat$DIQ010==7 | bigdat$DIQ010==9), NA_real_, ifelse(bigdat$LBXGH >= 6.5 | bigdat$DIQ010==1, 1, 0)) #diabetes, based on lab and self-report
+bigdat$diabetic <-
+  ifelse(
+    is.na(bigdat$LBXGH) &
+      (is.na(bigdat$DIQ010) |
+         bigdat$DIQ010 == 7 |
+         bigdat$DIQ010 == 9),
+    NA_real_,
+    ifelse(bigdat$LBXGH >= 6.5 |
+             bigdat$DIQ010 == 1, 1, 0)
+  ) #diabetes, based on lab and self-report
 
-bigdat$alcoholic <- ifelse(bigdat$ALQ101==0, 0, ifelse(is.na(bigdat$ALQ130) | bigdat$ALQ130==77 | bigdat$ALQ130 ==99, NA_real_, ifelse(bigdat$ALQ130 >2 , 1, ifelse(bigdat$ALQ130 >= 0 & bigdat$ALQ130 < 2, 0, NA_real_)))) #heavy drinking, based on self-report of more than 2 drinks per day
+bigdat$alcoholic <-
+  ifelse(
+    bigdat$ALQ101 == 0,
+    0,
+    ifelse(
+      is.na(bigdat$ALQ130) |
+        bigdat$ALQ130 == 77 |
+        bigdat$ALQ130 == 99,
+      NA_real_,
+      ifelse(
+        bigdat$ALQ130 > 2 ,
+        1,
+        ifelse(bigdat$ALQ130 >= 0 &
+                 bigdat$ALQ130 < 2, 0, NA_real_)
+      )
+    )
+  ) #heavy drinking, based on self-report of more than 2 drinks per day
 
-bigdat$mental <- ifelse((bigdat$HUQ090==7 | bigdat$HUQ090==9 | is.na(bigdat$HUQ090)) & (bigdat$HSQ480==7 | bigdat$HSQ480==9 | is.na(bigdat$HSQ480)), NA_real_, ifelse(bigdat$HUQ090==1 | bigdat$HSQ480 > 15, 1, 0)) #mental health diagnosis
+bigdat$mental <-
+  ifelse((bigdat$HUQ090 == 7 |
+            bigdat$HUQ090 == 9 |
+            is.na(bigdat$HUQ090)) &
+           (bigdat$HSQ480 == 7 |
+              bigdat$HSQ480 == 9 |
+              is.na(bigdat$HSQ480)),
+         NA_real_,
+         ifelse(bigdat$HUQ090 == 1 |
+                  bigdat$HSQ480 > 15, 1, 0)
+  ) #mental health diagnosis
 
-bigdat$kidney <- ifelse(bigdat$KIQ022==7 | bigdat$KIQ022==0 | is.na(bigdat$KIQ022), NA_real_, ifelse(bigdat$KIQ022==1, 1, 0)) #kidney health issue
+bigdat$kidney <-
+  ifelse(
+    bigdat$KIQ022 == 7 |
+      bigdat$KIQ022 == 0 |
+      is.na(bigdat$KIQ022),
+    NA_real_,
+    ifelse(bigdat$KIQ022 == 1, 1, 0)
+  ) #kidney health issue
 
-bigdat$asthma <- ifelse(bigdat$MCQ010==7 | bigdat$MCQ010==9 | is.na(bigdat$MCQ010), NA_real_, ifelse(bigdat$MCQ010==1, 1, 0)) #asthma
+bigdat$asthma <-
+  ifelse(
+    bigdat$MCQ010 == 7 |
+      bigdat$MCQ010 == 9 |
+      is.na(bigdat$MCQ010),
+    NA_real_,
+    ifelse(bigdat$MCQ010 == 1, 1, 0)
+  ) #asthma
 
-bigdat$anemic <- ifelse(bigdat$MCQ053==7 | bigdat$MCQ053==9 | is.na(bigdat$MCQ053), NA_real_, ifelse(bigdat$MCQ053==1, 1, 0)) #anemia
+bigdat$anemic <-
+  ifelse(
+    bigdat$MCQ053 == 7 |
+      bigdat$MCQ053 == 9 |
+      is.na(bigdat$MCQ053),
+    NA_real_,
+    ifelse(bigdat$MCQ053 == 1, 1, 0)
+  ) #anemia
 
-bigdat$arthritis <- ifelse(bigdat$MCQ160A==7 | bigdat$MCQ160A==9 | is.na(bigdat$MCQ160A), NA_real_, ifelse(bigdat$MCQ160A==1, 1, 0)) #arthritis
+bigdat$arthritis <-
+  ifelse(
+    bigdat$MCQ160A == 7 |
+      bigdat$MCQ160A == 9 |
+      is.na(bigdat$MCQ160A),
+    NA_real_,
+    ifelse(bigdat$MCQ160A == 1, 1, 0)
+  ) #arthritis
 
-bigdat$chf <- ifelse(bigdat$MCQ160B==7 | bigdat$MCQ160B==9 | is.na(bigdat$MCQ160B), NA_real_, ifelse(bigdat$MCQ160B==1, 1, 0)) #congestive heart failure
+bigdat$chf <-
+  ifelse(
+    bigdat$MCQ160B == 7 |
+      bigdat$MCQ160B == 9 |
+      is.na(bigdat$MCQ160B),
+    NA_real_,
+    ifelse(bigdat$MCQ160B == 1, 1, 0)
+  ) #congestive heart failure
 
-bigdat$chd <- ifelse(bigdat$MCQ160C==7 | bigdat$MCQ160C==9 | is.na(bigdat$MCQ160C), NA_real_, ifelse(bigdat$MCQ160C==1, 1, 0)) #coronary heart disease
+bigdat$chd <-
+  ifelse(
+    bigdat$MCQ160C == 7 |
+      bigdat$MCQ160C == 9 |
+      is.na(bigdat$MCQ160C),
+    NA_real_,
+    ifelse(bigdat$MCQ160C == 1, 1, 0)
+  ) #coronary heart disease
 
-bigdat$angina <- ifelse(bigdat$MCQ160D==7 | bigdat$MCQ160D==9 | is.na(bigdat$MCQ160D), NA_real_, ifelse(bigdat$MCQ160D==1, 1, 0)) #angina
+bigdat$angina <-
+  ifelse(
+    bigdat$MCQ160D == 7 |
+      bigdat$MCQ160D == 9 |
+      is.na(bigdat$MCQ160D),
+    NA_real_,
+    ifelse(bigdat$MCQ160D == 1, 1, 0)
+  ) #angina
 
-bigdat$mi <- ifelse(bigdat$MCQ160E==7 | bigdat$MCQ160E==9 | is.na(bigdat$MCQ160E), NA_real_, ifelse(bigdat$MCQ160E==1, 1, 0)) #previous heart attack
+bigdat$mi <-
+  ifelse(
+    bigdat$MCQ160E == 7 |
+      bigdat$MCQ160E == 9 |
+      is.na(bigdat$MCQ160E),
+    NA_real_,
+    ifelse(bigdat$MCQ160E == 1, 1, 0)
+  ) #previous heart attack
 
-bigdat$mi_chd <- ifelse(bigdat$mi==1 | bigdat$chd==1, 1, ifelse(is.na(bigdat$mi) & is.na(bigdat$chd), NA_real_, 0)) #indicator of having either previous heart attack or coronary heart disease, to match PLCO variable
+bigdat$mi_chd <-
+  ifelse(bigdat$mi == 1 |
+           bigdat$chd == 1,
+         1,
+         ifelse(is.na(bigdat$mi) &
+                  is.na(bigdat$chd), NA_real_, 0)) #indicator of having 
+#either previous heart attack or coronary heart disease, to match PLCO variable
 
-bigdat$stroke <- ifelse(bigdat$MCQ160F==7 | bigdat$MCQ160F==9 | is.na(bigdat$MCQ160F), NA_real_, ifelse(bigdat$MCQ160F==1, 1, 0)) #previous stroke
+bigdat$stroke <-
+  ifelse(
+    bigdat$MCQ160F == 7 |
+      bigdat$MCQ160F == 9 |
+      is.na(bigdat$MCQ160F),
+    NA_real_,
+    ifelse(bigdat$MCQ160F == 1, 1, 0)
+  ) #previous stroke
 
-bigdat$emphysema <- ifelse(bigdat$MCQ160G==7 | bigdat$MCQ160G==9 | is.na(bigdat$MCQ160G), NA_real_, ifelse(bigdat$MCQ160G==1, 1, 0)) #emphysema
+bigdat$emphysema <-
+  ifelse(
+    bigdat$MCQ160G == 7 |
+      bigdat$MCQ160G == 9 |
+      is.na(bigdat$MCQ160G),
+    NA_real_,
+    ifelse(bigdat$MCQ160G == 1, 1, 0)
+  ) #emphysema
 
-bigdat$bronch <- ifelse(bigdat$MCQ160K==7 | bigdat$MCQ160K==9 | is.na(bigdat$MCQ160K), NA_real_, ifelse(bigdat$MCQ160K==1, 1, 0)) #chronic bronchitis
+bigdat$bronch <-
+  ifelse(
+    bigdat$MCQ160K == 7 |
+      bigdat$MCQ160K == 9 |
+      is.na(bigdat$MCQ160K),
+    NA_real_,
+    ifelse(bigdat$MCQ160K == 1, 1, 0)
+  ) #chronic bronchitis
 
-bigdat$liver <- ifelse(bigdat$MCQ160L==7 | bigdat$MCQ160L==9 | is.na(bigdat$MCQ160L), NA_real_, ifelse(bigdat$MCQ160L==1, 1, 0)) #liver disease
+bigdat$liver <-
+  ifelse(
+    bigdat$MCQ160L == 7 |
+      bigdat$MCQ160L == 9 |
+      is.na(bigdat$MCQ160L),
+    NA_real_,
+    ifelse(bigdat$MCQ160L == 1, 1, 0)
+  ) #liver disease
 
-bigdat$cancer <- ifelse(bigdat$MCQ220==7 | bigdat$MCQ220==9 | is.na(bigdat$MCQ220), NA_real_, ifelse(bigdat$MCQ220==1, 1, 0)) #cancer
+bigdat$cancer <-
+  ifelse(
+    bigdat$MCQ220 == 7 |
+      bigdat$MCQ220 == 9 |
+      is.na(bigdat$MCQ220),
+    NA_real_,
+    ifelse(bigdat$MCQ220 == 1, 1, 0)
+  ) #cancer
 
-bigdat$pc <- ifelse(bigdat$cancer==0, 0, ifelse(bigdat$MCQ230A==30 | bigdat$MCQ230B==30 | bigdat$MCQ230C==30 | bigdat$MCQ230D==30, 1, NA_real_)) #prostate cancer, specifically
+bigdat$pc <-
+  ifelse(
+    bigdat$cancer == 0,
+    0,
+    ifelse(
+      bigdat$MCQ230A == 30 |
+        bigdat$MCQ230B == 30 |
+        bigdat$MCQ230C == 30 |
+        bigdat$MCQ230D == 30,
+      1,
+      NA_real_
+    )
+  ) #prostate cancer, specifically
 
-bigdat$hiv <- ifelse(is.na(bigdat$LBDHI) | bigdat$LBDHI==3, NA_real_, ifelse(bigdat$LBDHI==2, 0, 1)) #HIV, based on antibody test
+bigdat$hiv <-
+  ifelse(is.na(bigdat$LBDHI) |
+           bigdat$LBDHI == 3,
+         NA_real_,
+         ifelse(bigdat$LBDHI == 2, 0, 1)) #HIV, based on antibody test
 
 #Defining weight categories:
-bigdat$overweight_ex <- ifelse(is.na(bigdat$BMXBMI), NA_real_, ifelse(bigdat$BMXBMI >= 25 & bigdat$BMXBMI < 30, 1, 0)) #overweight, BMI 25-30
+bigdat$overweight_ex <-
+  ifelse(is.na(bigdat$BMXBMI),
+         NA_real_,
+         ifelse(bigdat$BMXBMI >= 25 &
+                  bigdat$BMXBMI < 30, 1, 0)) #overweight, BMI 25-30
 
-bigdat$obese <- ifelse(is.na(bigdat$BMXBMI), NA_real_, ifelse(bigdat$BMXBMI >= 30, 1, 0)) #obese, BMI 30+
+bigdat$obese <-
+  ifelse(is.na(bigdat$BMXBMI),
+         NA_real_,
+         ifelse(bigdat$BMXBMI >= 30, 1, 0)) #obese, BMI 30+
 
-bigdat$underweight <- ifelse(is.na(bigdat$BMXBMI), NA_real_, ifelse(bigdat$BMXBMI < 18.5, 1, 0)) #underweight, BMI < 18.5
+bigdat$underweight <-
+  ifelse(is.na(bigdat$BMXBMI),
+         NA_real_,
+         ifelse(bigdat$BMXBMI < 18.5, 1, 0)) #underweight, BMI < 18.5
 
-bigdat$overweight2 <- ifelse(is.na(bigdat$BMXBMI), NA_real_, ifelse(bigdat$BMXBMI >= 25 & bigdat$BMXBMI < 40, 1, 0)) #alternative weight categorization, with "overweight" being BMI 25-40
+bigdat$overweight2 <-
+  ifelse(is.na(bigdat$BMXBMI),
+         NA_real_,
+         ifelse(bigdat$BMXBMI >= 25 &
+                  bigdat$BMXBMI < 40, 1, 0)) #alternative weight categorization, 
+#with "overweight" being BMI 25-40
 
-bigdat$obese2 <- ifelse(is.na(bigdat$BMXBMI), NA_real_, ifelse(bigdat$BMXBMI >= 40, 1, 0)) #alternative weight categorization, with "obese" being BMI 40+
+bigdat$obese2 <-
+  ifelse(is.na(bigdat$BMXBMI),
+         NA_real_,
+         ifelse(bigdat$BMXBMI >= 40, 1, 0)) #alternative weight categorization, 
+#with "obese" being BMI 40+
 
 #Smoking categories:
-bigdat$smoker <- ifelse(bigdat$SMQ020==7 | bigdat$SMQ020==9 | is.na(bigdat$SMQ020), NA_real_, ifelse(bigdat$SMQ020==2, 0, ifelse(bigdat$SMQ020==1 & (bigdat$SMQ040==1 | bigdat$SMQ040==2), 1, ifelse(bigdat$SMQ020==1 & bigdat$SMQ040==3, 2, NA_real_)))) #never, current, former
+bigdat$smoker <-
+  ifelse(
+    bigdat$SMQ020 == 7 |
+      bigdat$SMQ020 == 9 |
+      is.na(bigdat$SMQ020),
+    NA_real_,
+    ifelse(bigdat$SMQ020 == 2, 0, ifelse(
+      bigdat$SMQ020 == 1 &
+        (bigdat$SMQ040 == 1 |
+           bigdat$SMQ040 == 2),
+      1,
+      ifelse(bigdat$SMQ020 == 1 &
+               bigdat$SMQ040 == 3, 2, NA_real_)
+    ))
+  ) #never, current, former
 
 #Alternative censoring indicator that censors men who died of prostate cancer:
-bigdat$mortstat2 <- ifelse(bigdat$ucod_leading==002 & bigdat$pc==1, 0, bigdat$mortstat)
+bigdat$mortstat2 <-
+  ifelse(bigdat$ucod_leading == 002 &
+           bigdat$pc == 1, 0, bigdat$mortstat)
 
 #Collapsing demographics to deal with small cells:
-bigdat$race2 <- ifelse(bigdat$RIDRETH1==1 | bigdat$RIDRETH1==2 | bigdat$RIDRETH1==5, "Other", ifelse(bigdat$RIDRETH1==3, "NHW", ifelse(bigdat$RIDRETH1==4, "NHB", NA_character_))) #Race becomes NHW, NHB, Other
+bigdat$race2 <-
+  ifelse(
+    bigdat$RIDRETH1 == 1 |
+      bigdat$RIDRETH1 == 2 |
+      bigdat$RIDRETH1 == 5,
+    "Other",
+    ifelse(
+      bigdat$RIDRETH1 == 3,
+      "NHW",
+      ifelse(bigdat$RIDRETH1 == 4, "NHB", NA_character_)
+    )
+  ) #Race becomes NHW, NHB, Other
 
-bigdat$marital2 <- ifelse(bigdat$DMDMARTL==1 | bigdat$DMDMARTL==6, "Married", ifelse(bigdat$DMDMARTL==2 | bigdat$DMDMARTL==3 | bigdat$DMDMARTL==4, "Separated", ifelse(bigdat$DMDMARTL==5, "Single", NA_character_))) #Marital status becomes Married, Single, Separated
+bigdat$marital2 <-
+  ifelse(
+    bigdat$DMDMARTL == 1 |
+      bigdat$DMDMARTL == 6,
+    "Married",
+    ifelse(
+      bigdat$DMDMARTL == 2 |
+        bigdat$DMDMARTL == 3 |
+        bigdat$DMDMARTL == 4,
+      "Separated",
+      ifelse(bigdat$DMDMARTL == 5, "Single", NA_character_)
+    )
+  ) #Marital status becomes Married, Single, Separated
 
 #Gettting age that prostate cancer was diagnosed:
-bigdat$agepc <- ifelse(bigdat$MCQ240U==77777 | bigdat$MCQ240U==99999, NA_real_, bigdat$MCQ240U)
+bigdat$agepc <-
+  ifelse(bigdat$MCQ240U == 77777 |
+           bigdat$MCQ240U == 99999,
+         NA_real_,
+         bigdat$MCQ240U)
 
 bigdat$pcduration <- case_when(
-  (bigdat$pc==1) ~ bigdat$age-bigdat$agepc,
-  (bigdat$pc==0) ~ 0,
+  (bigdat$pc == 1) ~ bigdat$age - bigdat$agepc,
+  (bigdat$pc == 0) ~ 0,
   is.na(bigdat$pc) ~ NA_real_
-) #years since prostate cancer diagnosis 
+) #years since prostate cancer diagnosis
 
 #Renaming variables and selecting final variables:
-nhanesfinal <-  mutate(bigdat, sex = RIAGENDR, age = RIDAGEYR, race = RIDRETH1, military= DMQMILIT, educ = DMDEDUC2, marital = DMDMARTL) %>% select(SEQN, SDDSRVYR, sex, age, race, race2, military, usbirth, educ, marital, marital2, INDFMPIR, WTMEC2YR, WTMEC4YR, SDMVPSU, SDMVSTRA, hiv, hypertension, highchol, diabetic, alcoholic, insurance, BMXBMI, underweight, overweight_ex, obese, overweight2, obese2, care, hospital, mental, kidney, anemic, arthritis, chf, chd, angina, mi, mi_chd, stroke, emphysema, bronch, liver, cancer, pc, agepc, pcduration, smoker, asthma, eligstat, mortstat, mortstat2, permth_exm, ucod_leading) 
+nhanesfinal <-
+  mutate(
+    bigdat,
+    sex = RIAGENDR,
+    age = RIDAGEYR,
+    race = RIDRETH1,
+    military = DMQMILIT,
+    educ = DMDEDUC2,
+    marital = DMDMARTL
+  ) %>% select(
+    SEQN,
+    SDDSRVYR,
+    sex,
+    age,
+    race,
+    race2,
+    military,
+    usbirth,
+    educ,
+    marital,
+    marital2,
+    INDFMPIR,
+    WTMEC2YR,
+    WTMEC4YR,
+    SDMVPSU,
+    SDMVSTRA,
+    hiv,
+    hypertension,
+    highchol,
+    diabetic,
+    alcoholic,
+    insurance,
+    BMXBMI,
+    underweight,
+    overweight_ex,
+    obese,
+    overweight2,
+    obese2,
+    care,
+    hospital,
+    mental,
+    kidney,
+    anemic,
+    arthritis,
+    chf,
+    chd,
+    angina,
+    mi,
+    mi_chd,
+    stroke,
+    emphysema,
+    bronch,
+    liver,
+    cancer,
+    pc,
+    agepc,
+    pcduration,
+    smoker,
+    asthma,
+    eligstat,
+    mortstat,
+    mortstat2,
+    permth_exm,
+    ucod_leading
+  )
 
-#Initially, we filter to men ages >40 free of non-prostate cancer, with complete data for age, anemia, angina, arthritis, asthma, bronch, regular health care, CHD, CHF, diabetes, education, emphysema, high cholesterol, hospitalization, hypertension, insurance status, kidney disease, liver disease, marital status, mental health, heart attack, military status, BMI, race, smoking status, stroke, birthplace, mortality status, prostate cancer diagnosis, and income. Because we plan to use survey weights, we need to create an inclusion indicator: 
-nhanesfinal$inmodel1 <- ifelse(nhanesfinal$sex==1 & nhanesfinal$age > 40 & (nhanesfinal$cancer==0 | nhanesfinal$pc==1) & !is.na(nhanesfinal$age) & !is.na(nhanesfinal$alcoholic) & !is.na(nhanesfinal$anemic) & !is.na(nhanesfinal$angina) & !is.na(nhanesfinal$arthritis) & !is.na(nhanesfinal$asthma) & !is.na(nhanesfinal$bronch) & !is.na(nhanesfinal$care) & !is.na(nhanesfinal$chd) & !is.na(nhanesfinal$chf) & !is.na(nhanesfinal$diabetic) & !is.na(nhanesfinal$educ) & !is.na(nhanesfinal$emphysema) & !is.na(nhanesfinal$highchol) & !is.na(nhanesfinal$hospital) & !is.na(nhanesfinal$hypertension) & !is.na(nhanesfinal$insurance) & !is.na(nhanesfinal$kidney) & !is.na(nhanesfinal$liver) & !is.na(nhanesfinal$marital) & !is.na(nhanesfinal$mental) & !is.na(nhanesfinal$mi) & !is.na(nhanesfinal$military) & !is.na(nhanesfinal$BMXBMI) & !is.na(nhanesfinal$race) & !is.na(nhanesfinal$smoker) & !is.na(nhanesfinal$stroke) & !is.na(nhanesfinal$mortstat) & !is.na(nhanesfinal$pc), 1, 0)
-                      
-#Saving a version of this dataset (this is included on GitHub as nhanesbig.csv): 
+#Initially, we filter to men ages >40 free of non-prostate cancer, with complete 
+#data for age, anemia, angina, arthritis, asthma, bronch, regular health care, 
+#CHD, CHF, diabetes, education, emphysema, high cholesterol, hospitalization, 
+#hypertension, insurance status, kidney disease, liver disease, marital status, 
+#mental health, heart attack, military status, BMI, race, smoking status, stroke, 
+#birthplace, mortality status, prostate cancer diagnosis, and income. 
+#Because we plan to use survey weights, we need to create an inclusion indicator:
+nhanesfinal$inmodel1 <-
+  ifelse(
+    nhanesfinal$sex == 1 &
+      nhanesfinal$age > 40 &
+      (nhanesfinal$cancer == 0 |
+         nhanesfinal$pc == 1) &
+      !is.na(nhanesfinal$age) &
+      !is.na(nhanesfinal$alcoholic) &
+      !is.na(nhanesfinal$anemic) &
+      !is.na(nhanesfinal$angina) &
+      !is.na(nhanesfinal$arthritis) &
+      !is.na(nhanesfinal$asthma) &
+      !is.na(nhanesfinal$bronch) &
+      !is.na(nhanesfinal$care) &
+      !is.na(nhanesfinal$chd) &
+      !is.na(nhanesfinal$chf) &
+      !is.na(nhanesfinal$diabetic) &
+      !is.na(nhanesfinal$educ) &
+      !is.na(nhanesfinal$emphysema) &
+      !is.na(nhanesfinal$highchol) &
+      !is.na(nhanesfinal$hospital) &
+      !is.na(nhanesfinal$hypertension) &
+      !is.na(nhanesfinal$insurance) &
+      !is.na(nhanesfinal$kidney) &
+      !is.na(nhanesfinal$liver) &
+      !is.na(nhanesfinal$marital) &
+      !is.na(nhanesfinal$mental) &
+      !is.na(nhanesfinal$mi) &
+      !is.na(nhanesfinal$military) &
+      !is.na(nhanesfinal$BMXBMI) &
+      !is.na(nhanesfinal$race) &
+      !is.na(nhanesfinal$smoker) &
+      !is.na(nhanesfinal$stroke) &
+      !is.na(nhanesfinal$mortstat) & !is.na(nhanesfinal$pc),
+    1,
+    0
+  )
+
+#Saving a version of this dataset (this is included on GitHub as nhanesbig.csv):
 write_csv(x = nhanesfinal, path = "~/Desktop/Research/Matt Prostate OCM/PCOtherCause/nhanesbig.csv")
 
-#Now that data assembly is complete, proceed to OCM_modelbuilding to see how prediction models were determined.
+#Now that data assembly is complete, proceed to OCM_modelbuilding to see how 
+#prediction models were determined.
 ```
