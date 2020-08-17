@@ -142,6 +142,12 @@ plco$mortstat <- case_when(
   plco$is_dead_with_cod == 0 ~ 0
 )
 
+plco$mortstat2 <- case_when(
+  plco$is_dead_with_cod == 1 & plco$f_dthp == 0 ~ 1,
+  plco$is_dead_with_cod == 1 & plco$f_dthp == 1 ~ 2,
+  plco$is_dead_with_cod == 0 ~ 0
+)
+
 plco$permth_exm <-
   round((plco$mortality_exitdays - plco$pros_exitdays) / 30)
 
@@ -180,6 +186,7 @@ plco_clean <- mutate(
     obese,
     pc,
     mortstat,
+    mortstat2,
     permth_exm,
     primary_tx
   )
@@ -521,19 +528,19 @@ cutTime <- 14*12   #14 yr cutoff point
 plco_clean$pc_time_14yr <- ifelse(plco_clean$permth_exm > cutTime, cutTime, 
                                   plco_clean$permth_exm)
 plco_clean$pc_status <- ifelse(plco_clean$permth_exm >= cutTime, 0, 
-                               plco_clean$mortstat)
+                               plco_clean$mortstat2)
 plco_clean$linpred <- cox40predict
 
 dat <- plco_clean[, c("pc_status", "pc_time_14yr", "linpred")]
 dat <- dat[complete.cases(dat), ]
   
-eve.recur <- dat$pc_status == 1
-eve.dead <- dat$os == 1 & dat$pc_status == 0
-eve.cens <- dat$os == 0 &  dat$pc_status == 0
+eve.ocm <- dat$pc_status == 1
+eve.pcsm <- dat$pc_status == 2
+eve.cens <- dat$pc_status == 0 
   
 fstatus <- rep(0,times = nrow(dat))
-fstatus[which(eve.recur)] <- 1
-fstatus[which(eve.dead)] <- 2
+fstatus[which(eve.ocm)] <- 1
+fstatus[which(eve.pcsm)] <- 2
 ftime <- dat$pc_time_14yr
 
 fg_covariates <- dat$linpred
@@ -579,23 +586,21 @@ calibration5_data <- data.frame("Year" = rep("5 Years", 3),
                                 "Group" = c(0.1, 0.3, 0.5), 
                                 "Est" = c(cuminc_5$`0.1 1`$est[cuminc_5$`0.1 1`$time==60][1], 
                                           cuminc_5$`0.3 1`$est[cuminc_5$`0.3 1`$time==59][1], 
-                                          cuminc_5$`0.5 1`$est[cuminc_5$`0.5 1`$time==58][1]), 
+                                          cuminc_5$`0.5 1`$est[cuminc_5$`0.5 1`$time==57][1]), 
                                 "Var" = c(cuminc_5$`0.1 1`$var[cuminc_5$`0.1 1`$time==60][1], 
                                           cuminc_5$`0.3 1`$var[cuminc_5$`0.3 1`$time==59][1], 
-                                          cuminc_5$`0.5 1`$var[cuminc_5$`0.5 1`$time==58][1]))
+                                          cuminc_5$`0.5 1`$var[cuminc_5$`0.5 1`$time==57][1]))
 
-calibration10_data <- data.frame("Year" = rep("10 Years", 5), 
-                                 "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
+calibration10_data <- data.frame("Year" = rep("10 Years", 4), 
+                                 "Group" = c(0.1, 0.3, 0.5, 0.7), 
                                  "Est" = c(cuminc_10$`0.1 1`$est[cuminc_10$`0.1 1`$time==120][1], 
                                            cuminc_10$`0.3 1`$est[cuminc_10$`0.3 1`$time==120][1], 
-                                           cuminc_10$`0.5 1`$est[cuminc_10$`0.5 1`$time==120][1], 
-                                           cuminc_10$`0.7 1`$est[cuminc_10$`0.7 1`$time==124][1], 
-                                           cuminc_10$`0.9 1`$est[cuminc_10$`0.9 1`$time==118][1]), 
+                                           cuminc_10$`0.5 1`$est[cuminc_10$`0.5 1`$time==119][1], 
+                                           cuminc_10$`0.7 1`$est[cuminc_10$`0.7 1`$time==118][1]), 
                                  "Var" = c(cuminc_10$`0.1 1`$var[cuminc_10$`0.1 1`$time==120][1], 
                                            cuminc_10$`0.3 1`$var[cuminc_10$`0.3 1`$time==120][1], 
-                                           cuminc_10$`0.5 1`$var[cuminc_10$`0.5 1`$time==120][1], 
-                                           cuminc_10$`0.7 1`$var[cuminc_10$`0.7 1`$time==124][1], 
-                                           cuminc_10$`0.9 1`$var[cuminc_10$`0.9 1`$time==118][1]))
+                                           cuminc_10$`0.5 1`$var[cuminc_10$`0.5 1`$time==119][1], 
+                                           cuminc_10$`0.7 1`$var[cuminc_10$`0.7 1`$time==118][1]))
 
 calibration14_data <- data.frame("Year" = rep("10 Years", 5), 
                                  "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
@@ -603,12 +608,12 @@ calibration14_data <- data.frame("Year" = rep("10 Years", 5),
                                            cuminc_14$`0.3 1`$est[cuminc_14$`0.3 1`$time==168][1], 
                                            cuminc_14$`0.5 1`$est[cuminc_14$`0.5 1`$time==168][1], 
                                            cuminc_14$`0.7 1`$est[cuminc_14$`0.7 1`$time==168][1], 
-                                           cuminc_14$`0.9 1`$est[cuminc_14$`0.9 1`$time==168][1]), 
+                                           cuminc_14$`0.9 1`$est[cuminc_14$`0.9 1`$time==157][1]), 
                                  "Var" = c(cuminc_14$`0.1 1`$var[cuminc_14$`0.1 1`$time==168][1], 
                                            cuminc_14$`0.3 1`$var[cuminc_14$`0.3 1`$time==168][1], 
                                            cuminc_14$`0.5 1`$var[cuminc_14$`0.5 1`$time==168][1], 
                                            cuminc_14$`0.7 1`$var[cuminc_14$`0.7 1`$time==168][1], 
-                                           cuminc_14$`0.9 1`$var[cuminc_14$`0.9 1`$time==168][1]))
+                                           cuminc_14$`0.9 1`$var[cuminc_14$`0.9 1`$time==157][1]))
 
 calibration5_data$Upper <- calibration5_data$Est + 1.96*sqrt(calibration5_data$Var)
 calibration10_data$Upper <- calibration10_data$Est + 1.96*sqrt(calibration10_data$Var)
