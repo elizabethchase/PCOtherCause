@@ -1048,6 +1048,15 @@ recplot <- ggplot(data = plco_clean2[!is.na(plco_clean2$treatrec),], aes(x=treat
 recplot
 ```
 
+Figure 8: Distribution of treatment across PC and OC risk:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+palette <- brewer.pal(8, name = "BuPu")
+trtplot <- ggplot(data = plco_clean2[!is.na(plco_clean2$pc_risk_group),], aes(x=pc_risk_group, y = riskgroup, color = primary_tx)) + geom_point(position="jitter") + theme_bw() + theme(axis.text.x = element_text(angle = 90)) + coord_flip() + ylab("OC Mortality Risk") + xlab("PC Mortality Risk") + scale_color_manual(name = "Treatment", values = palette[3:8])
+
+trtplot
+
+```
+
 \newpage
 \blandscape
 Table 4: Descriptions of life expectancy (grouped by risk of OCM at 10 years):
