@@ -521,7 +521,6 @@ rownames(auc_table_trt) <- NULL
 kable(auc_table_trt, caption="Time-Dependent AUC in PLCO, by Treatment")
 ```
 
-Now we refit this as a Fine and Gray model using the linear predictor from the age 40+ Cox model as our sole predictor. We create a calibration plot:
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
 cutTime <- 14*12   #14 yr cutoff point
 
@@ -653,7 +652,180 @@ myplot <- ggplot() + geom_line(data = calibration5_data, aes(x=Group, y=Est),
        5 years. Purple line: calibration at 10 years. Gray line: calibration 
        at 14 years.")
 
-myplot
+#myplot
 
-save(list=c("plco_clean", "plco_nf"), file = "~/Box/PLCO Data/Prostate/plco_data_clean.RData")
+#save(list=c("plco_clean", "plco_nf"), file = "~/Box/PLCO Data/Prostate/plco_data_clean.RData")
+```
+
+## Variable Importance
+
+We assess the variable importance of our Cox model:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+load("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nhanes_data_clean.RData")
+f <-
+  cph(
+    Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + educ + hypertension + 
+      marital2 + underweight + overweight2 + obese2 + smoker + stroke + 
+      age_ctr_40 * diabetic + age_ctr_40 * educ + age_ctr_40 * hypertension + 
+      age_ctr_40 * stroke + pc,
+    data = mydata[mydata$inmodel4 == 1, ],
+    x = TRUE,
+    y = TRUE
+  )
+
+plot(anova(f), what='proportion chisq')
+```
+
+
+## Comparison to SSA and NVSS Life Tables
+
+We compare to the SSA and NVSS life tables:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+ssa <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/ssa_2000.csv")
+ssa$age <- seq(0, 119, by = 1)
+
+nvss_black <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_blackmales_2001.csv")
+nvss_white <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_whitemales_2001.csv")
+nvss_other <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_allmales_2001.csv")
+nvss_other <- nvss_other[-102,]
+
+nvss <- data.frame("Age" = seq(0, 100, by = 1), "White" = nvss_white$Expectancy, "Black" = nvss_black$Expectancy, "Other" = nvss_other$Expectancy)
+
+plco_clean$ssa <- NA
+plco_clean$nvss <- NA
+for (i in 1:nrow(plco_clean)){
+  plco_clean$ssa[i] <- ssa$Expectancy[which(ssa$age==plco_clean$age[i])]
+  if (plco_clean$race2[i]=="NHW"){
+    plco_clean$nvss[i] <- nvss$White[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="NHB"){
+    plco_clean$nvss[i] <- nvss$Black[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="Other"){
+    plco_clean$nvss[i] <- nvss$Other[which(nvss$Age==plco_clean$age[i])]
+  }
+}
+
+ssa_roc <-
+  timeROC(
+    T = plco_clean$permth_exm,
+    delta = plco_clean$mortstat,
+    marker = 1/plco_clean$ssa,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+nvss_roc <-
+  timeROC(
+    T = plco_clean$permth_exm,
+    delta = plco_clean$mortstat,
+    marker = 1/plco_clean$nvss,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+aucdat <-
+  data.frame("Time" = rep(seq(6, 168, by = 6), 2), 
+             "Model" = c(rep("SSA", 28), rep("NVSS", 28)),
+             "AUC" = c(ssa_roc$AUC[-1], nvss_roc$AUC[-1]))
+
+aucplot <-
+  ggplot(data = aucdat, aes(x = Time, y = AUC, group = Model, color=Model)) + 
+  geom_line() + xlab("Time (months)") + ylab("Time-dependent AUC in PLCO")
+
+aucplot
+
+auc_table <- data.frame("Model" = c("SSA", "NVSS"), 
+                      "Year5" = round(c(ssa_roc$AUC[11], 
+                                        nvss_roc$AUC[11]), digits=3), 
+                      "Year10" = round(c(ssa_roc$AUC[21], 
+                                         nvss_roc$AUC[21]), digits=3), 
+                      "Year14" = round(c(ssa_roc$AUC[29], 
+                                         nvss_roc$AUC[29]), digits=3))
+
+kable(auc_table, caption="Time-Dependent AUC in PLCO")
+
+km_predictions <- survfit(cox_40, plco_clean)
+incs2 <- km_predictions$time[2:length(km_predictions$time)] - km_predictions$time[1:(length(km_predictions$time)-1)]
+rmst2 <- (incs2 %*% (km_predictions$surv[-nrow(km_predictions$surv),]))/12
+
+expectancy_dat <- data.frame("Cox_40" = rmst2[1,], "SSA" = plco_clean$ssa, "NVSS" = plco_clean$nvss, "Actual" = plco_clean$permth_exm/12, "Outcome" = plco_clean$mortstat)
+
+expectancy_dat$SSA[expectancy_dat$SSA > 17] <- 17
+expectancy_dat$NVSS[expectancy_dat$NVSS > 17] <- 17
+
+comparison_plot <- ggplot(data=expectancy_dat, aes(x = SSA, y = Cox_40, color = factor(Outcome))) + geom_point() + scale_color_manual("Outcome", values = c("mediumpurple4", "gray74"), labels=c("Censored", "Died of OCM")) + coord_cartesian(xlim = c(3, 17), ylim = c(3, 17)) + xlab("Social Security Predicted Life Expectancy (up to 17 years)") + ylab("Cox Model Predicted Life Expectancy (up to 17 years)") + geom_abline(slope = 1, intercept = 0) + theme_bw()
+
+comparison_plot
+
+comparison_plot2 <- ggplot(data=expectancy_dat, aes(x = NVSS, y = Cox_40, color = factor(Outcome))) + geom_point() + scale_color_manual("Outcome", values = c("mediumpurple4", "gray74"), labels=c("Censored", "Died of OCM")) + coord_cartesian(xlim = c(3, 17), ylim = c(3, 17)) + xlab("NVSS Predicted Life Expectancy (up to 17 years)") + ylab("Cox Model Predicted Life Expectancy (up to 17 years)") + geom_abline(slope = 1, intercept = 0) + theme_bw()
+
+comparison_plot2
+```
+
+## PCSM Prediction
+
+We get the C-index for the linear predictor for PCSM:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+#Indicator for death from prostate cancer (other cause mortality censored)
+plco_clean$mortstat <- case_when(
+  plco_clean$mortstat2==2 ~ 1,
+  plco_clean$mortstat2==1 | plco_clean$mortstat2==0 ~ 0
+)
+  
+times <- seq(6, 168, by=6)
+
+cox40_plco_pcsm <- pec::cindex(object=cox_40, formula = Surv(permth_exm, mortstat) ~ 
+                            age_ctr_40 + diabetic + educ + hypertension + marital2 + 
+                            underweight + overweight2 + obese2 + smoker + stroke + 
+                            age_ctr_40*diabetic + age_ctr_40*educ + 
+                            age_ctr_40*hypertension + age_ctr_40*stroke + pc, 
+                          data=plco_clean, eval.times = times)
+
+valid_perf <- data.frame("Time" = seq(6, 168, by=6),
+                         "C" = cox40_plco_pcsm$AppCindex$coxph)
+
+performance_plot <- ggplot(data=valid_perf, aes(x=Time, y=C)) + geom_point(size=0.1) + 
+  geom_line(data=valid_perf) + xlab("Time (months)") + ylab("Time-dependent C-index in PLCO")
+
+performance_plot
+
+subperf <- data.frame("Model" = "Cox 40", 
+                      "Year5" = round(cox40_plco_pcsm$AppCindex$coxph[10], digits=3), 
+                      "Year10" = round(cox40_plco_pcsm$AppCindex$coxph[20], digits=3), 
+                      "Year14" = round(cox40_plco_pcsm$AppCindex$coxph[28], digits=3))
+
+kable(subperf, caption = "Time-dependent C-index for PCSM")
+
+cox40predict <-
+  predict(object = cox_40,
+          newdata = plco_clean,
+          type = "lp")
+
+cox40roc <-
+  timeROC(
+    T = plco_clean$permth_exm,
+    delta = plco_clean$mortstat,
+    marker = cox40predict,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+aucdat <-
+  data.frame("Time" = seq(6, 168, by = 6),
+             "AUC" = cox40roc$AUC[-1])
+
+aucplot <-
+  ggplot(data = aucdat, aes(x = Time, y = AUC)) + geom_line() + 
+  xlab("Time (months)") + ylab("Time-dependent AUC in PLCO")
+
+aucplot
+
+auc_table <- data.frame("Model" = "Cox 40", 
+                      "Year5" = round(cox40roc$AUC[11], digits=3), 
+                      "Year10" = round(cox40roc$AUC[21], digits=3), 
+                      "Year14" = round(cox40roc$AUC[29], digits=3))
+
+kable(auc_table, caption="Time-Dependent AUC for PCSM")
 ```

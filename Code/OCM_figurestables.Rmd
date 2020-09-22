@@ -1,7 +1,7 @@
 ---
 title: "OCM_figurestables"
 author: "Elizabeth Chase"
-date: "8/3/2020"
+date: "9/22/2020"
 header-includes:
   - \usepackage{lscape}
   - \newcommand{\blandscape}{\begin{landscape}}
@@ -37,7 +37,7 @@ load("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nhanes
 load("~/Box/PLCO Data/Prostate/plco_data_clean.RData")
 ```
 
-Figure 1: NHANES sample exclusions:
+Figure 1: Sample exclusions used to move from a sample of 9,214 men in National Health and Nutrition Examination Survey (NHANES) 1999-2010 to the final training sample of 2,420 men used for model-building. 
 ```{r, fig.align="center", out.width = "80%", message=FALSE, warning=FALSE, echo=FALSE}
 #nhanesfinal <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nhanesbig.csv")
 
@@ -88,7 +88,7 @@ knitr::include_graphics(path = "/Users/ecchase/Desktop/Research/Matt Prostate OC
 ```
 
 \newpage
-Figure 2: PLCO sample exclusions:
+Figure 2: Sample exclusions used to move from a sample of 8,776 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO) to the final validation sample of 8,220 men used for model-building. 
 ```{r, fig.align="center", out.width = "70%", message=FALSE, warning=FALSE, echo=FALSE}
 #prostatedata <-
 #  read_csv("~/Box/PLCO Data/Prostate/pros_data_nov18_d070819.csv.zip")
@@ -232,7 +232,7 @@ knitr::include_graphics(path = "/Users/ecchase/Desktop/Research/Matt Prostate OC
  
  \newpage
  
-Table 1: Baseline characteristics of training and validation data:
+Table 1: Baseline characteristics of NHANES training and PLCO validation data.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 nhanes_for_table <- mutate(mydata, Dataset = "NHANES") %>% filter(inmodel1==1) %>% select(age, arthritis, bronch, diabetic, educ, emphysema, hypertension, marital2, mi_chd, underweight, overweight2, obese2, liver, race2, smoker, stroke, pc, permth_exm, mortstat, Dataset)
 
@@ -272,11 +272,13 @@ var_label(data_for_table$weight) <- "BMI category"
 table_final <- CreateTableOne(vars = c("age", "race2", "educ", "marital2", "smoker", "arthritis", "bronch", "diabetic", "emphysema", "hypertension",  "mi_chd", "liver", "stroke", "weight", "pc", "mortstat", "permth_exm"), strata = "Dataset", includeNA = TRUE, data = data_for_table, argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
 
 kable(print(table_final, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(4:6, 8:12, 14:16, 18:20, 30:33))
+
+rm(list=c("table_final", "data_for_table", "nhanes_for_table", "plco_for_table"))
 ```
 
 \newpage 
 
-Table 2: Model performance:
+Table 2: Externally validated time-dependent AUCs at 5, 10, and 14 years of our Cox model fit to men ages 55+, our Cox model fit to men older than 40, and a random forest fit to men older than 40. Based on this assessment, we selected our age >40 Cox model as our final OC mortality model. We also include the AUCs obtained from using the Social Security Administration (SSA) 2001 actuarial table's life expectancy prediction and the National Vital Statistics System's (NVSS) 2001 life expectancy. All time-dependent AUCs were obtained after fitting the models in NHANES and then validating them in our PLCO validation sample of 8,220 men.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 cox_55 <-
   coxph(
@@ -350,27 +352,78 @@ rforestroc <-
     times = seq(0, 168, by = 6)
   )
 
-subperf <- data.frame("Model" = c("Cox Ages 55+", "Cox Ages 40+", "Random Forest"), "Year5_C" = round(c(cox55_plco$AppCindex$coxph[10], cox40_plco$AppCindex$coxph[10], forest_plco$AppCindex$rfsrc[10]), digits=2), "Year10_C" = round(c(cox55_plco$AppCindex$coxph[20], cox40_plco$AppCindex$coxph[20], forest_plco$AppCindex$rfsrc[20]), digits=2), "Year14_C" = round(c(cox55_plco$AppCindex$coxph[28], cox40_plco$AppCindex$coxph[28], forest_plco$AppCindex$rfsrc[28]), digits=2), "Year5_AUC" = round(c(cox55roc$AUC[11],cox40roc$AUC[11], rforestroc$AUC[11]), digits=2), "Year10_AUC" = round(c(cox55roc$AUC[21], cox40roc$AUC[21], rforestroc$AUC[21]), digits=2), "Year14_AUC" = round(c(cox55roc$AUC[29], cox40roc$AUC[29], rforestroc$AUC[29]), digits=2))
+ssa <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/ssa_2000.csv")
+ssa$age <- seq(0, 119, by = 1)
+
+nvss_black <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_blackmales_2001.csv")
+nvss_white <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_whitemales_2001.csv")
+nvss_other <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_allmales_2001.csv")
+nvss_other <- nvss_other[-102,]
+
+nvss <- data.frame("Age" = seq(0, 100, by = 1), "White" = nvss_white$Expectancy, "Black" = nvss_black$Expectancy, "Other" = nvss_other$Expectancy)
+
+plco_clean$ssa <- NA
+plco_clean$nvss <- NA
+for (i in 1:nrow(plco_clean)){
+  plco_clean$ssa[i] <- ssa$Expectancy[which(ssa$age==plco_clean$age[i])]
+  if (plco_clean$race2[i]=="NHW"){
+    plco_clean$nvss[i] <- nvss$White[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="NHB"){
+    plco_clean$nvss[i] <- nvss$Black[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="Other"){
+    plco_clean$nvss[i] <- nvss$Other[which(nvss$Age==plco_clean$age[i])]
+  }
+}
+
+ssa_roc <-
+  timeROC(
+    T = plco_clean$permth_exm,
+    delta = plco_clean$mortstat,
+    marker = 1/plco_clean$ssa,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+nvss_roc <-
+  timeROC(
+    T = plco_clean$permth_exm,
+    delta = plco_clean$mortstat,
+    marker = 1/plco_clean$nvss,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+subperf <- data.frame("Model" = c("Cox Ages 55+", "Cox Ages >40", "Random Forest >40", "SSA", "NVSS"), "Year5_AUC" = round(c(cox55roc$AUC[11],cox40roc$AUC[11], rforestroc$AUC[11], ssa_roc$AUC[11], nvss_roc$AUC[11]), digits=2), "Year10_AUC" = round(c(cox55roc$AUC[21], cox40roc$AUC[21], rforestroc$AUC[21], ssa_roc$AUC[21], nvss_roc$AUC[21]), digits=2), "Year14_AUC" = round(c(cox55roc$AUC[29], cox40roc$AUC[29], rforestroc$AUC[29], ssa_roc$AUC[29], nvss_roc$AUC[29]), digits=2))
 
 rownames(subperf) <- NULL
-kable(subperf, col.names = c("Model", "5 Years", "10 Years", "14 Years", "5 Years", "10 Years", "14 Years")) %>%
-add_header_above(c(" ", "C-Index" = 3, "AUC" = 3), escape=FALSE) %>% column_spec(column = 1, width = "3cm") %>% column_spec(column = 2:7, width = "1.75cm")
+kable(subperf, col.names = c("Model", "5 Years", "10 Years", "14 Years")) %>%
+add_header_above(c(" ", "AUC" = 3), escape=FALSE) %>% column_spec(column = 1, width = "3cm") %>% column_spec(column = 2:4, width = "1.75cm")
+
+rm(list=c("subperf", "rforestroc", "cox55roc", "cox40roc", "rforest_40", "cox_55", "cox55_plco", "cox40_plco", "forest_plco", "ssa_roc", "nvss_roc"))
 ```
 
+\newpage
 
-Figure 3: Forest plot of final Cox model:
+Figure 3: Comparison of life expectancy predictions (truncated at 17 years) from our final OC mortality model and predictions from the SSA 2001 actuarial tables for 8,220 men in PLCO.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
-cox_plotdata <- data.frame("Variable" = c("Age", "Diabetes", "9th-11th Grade", "High School", "Some College", "College", "Hypertension", "Separated", "Single", "Current Smoker", "Former Smoker", "Stroke", "Underweight (BMI <18.5)", "Overweight (BMI 25-40)", "Obese (BMI 40+)", "Prostate Cancer", "Age*Diabetes", "Age*9th-11th Grade", "Age*High School", "Age*Some College", "Age*College", "Age*Hypertension", "Age*Stroke"), "Effect" = summary(cox_40)$conf.int[,1], "Lower" = summary(cox_40)$conf.int[,3], "Upper" = summary(cox_40)$conf.int[,4], "Label" = paste(round(summary(cox_40)$conf.int[,1], digits=2), " (", round(summary(cox_40)$conf.int[,3], digits=2), ",", round(summary(cox_40)$conf.int[,4], digits=2), ")", sep=""))
+km_predictions <- survfit(cox_40, plco_clean)
+incs2 <- km_predictions$time[2:length(km_predictions$time)] - km_predictions$time[1:(length(km_predictions$time)-1)]
+rmst2 <- (incs2 %*% (km_predictions$surv[-nrow(km_predictions$surv),]))/12
 
-cox_plotdata$Variable <- factor(cox_plotdata$Variable, levels= c("Age", "Diabetes", "9th-11th Grade", "High School", "Some College", "College", "Hypertension", "Separated", "Single", "Current Smoker", "Former Smoker", "Stroke", "Underweight (BMI <18.5)", "Overweight (BMI 25-40)", "Obese (BMI 40+)", "Prostate Cancer", "Age*Diabetes", "Age*9th-11th Grade", "Age*High School", "Age*Some College", "Age*College", "Age*Hypertension", "Age*Stroke"), ordered=TRUE)
+expectancy_dat <- data.frame("Cox_40" = rmst2[1,], "SSA" = plco_clean$ssa, "NVSS" = plco_clean$nvss, "Actual" = plco_clean$permth_exm/12, "Outcome" = plco_clean$mortstat)
 
-adj_plot <- ggplot(cox_plotdata, aes(fct_rev(Variable), log(Effect))) + geom_point() + geom_errorbar(aes(ymin=log(Lower), ymax=log(Upper), width=0.1)) + coord_flip(ylim=c(-1.0, 3)) + labs(y = "Hazard Ratio and 95% CI", x = "", caption=TeX('Protective $\\leftarrow \\rightarrow$ Harmful' )) + geom_hline(yintercept=0, linetype="dashed", color = "black") + theme(panel.background = element_rect(fill="white"), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), legend.position="bottom", text=element_text(size=14), plot.caption = element_text(size=14, hjust = 0)) + geom_rect(fill="white", ymin=4.7, ymax=Inf, xmin=-Inf, xmax=Inf) + annotate(geom = 'text', label = cox_plotdata$Label, x = cox_plotdata$Variable, y = 1.7, hjust = 0, vjust = 0.5) + scale_y_continuous(breaks=log(c(0.25, 0.5, 1, 2, 4)), labels=c("0.25", "0.5", "1.0", "2.0", "4.0")) 
- 
-adj_plot
+expectancy_dat$SSA[expectancy_dat$SSA > 17] <- 17
+expectancy_dat$NVSS[expectancy_dat$NVSS > 17] <- 17
+
+comparison_plot <- ggplot(data=expectancy_dat, aes(x = SSA, y = Cox_40, color = factor(Outcome))) + geom_point() + scale_color_manual("Outcome", values = c("mediumpurple4", "gray74"), labels=c("Censored", "Died of OCM")) + coord_cartesian(xlim = c(3, 17), ylim = c(3, 17)) + xlab("Social Security Predicted Life Expectancy (up to 17 years)") + ylab("Cox Model Predicted Life Expectancy (up to 17 years)") + geom_abline(slope = 1, intercept = 0) + theme_bw()
+
+comparison_plot
 ```
 
-
-Table 3: Time-dependent AUC, C-index, by treatment:
+\newpage
+Table 3: Time-dependent AUC of our final OC mortality model in the three main treatment groups.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #And now we obtain estimates of the C-index and time-dependent AUC from our model in the main treatment groups: prostatectomy, radiation, and radiation + hormone:
 cox40_prostatectomy <- pec::cindex(object=cox_40, formula = Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + educ + hypertension + marital2 + underweight + overweight2 + obese2 + smoker + stroke + age_ctr_40*diabetic + age_ctr_40*educ + age_ctr_40*hypertension + age_ctr_40*stroke + pc, data=plco_clean[plco_clean$primary_tx=="Prostatectomy",], eval.times = times)
@@ -391,17 +444,180 @@ radiation_roc <- timeROC(T = plco_clean$permth_exm[plco_clean$primary_tx=="Radia
 
 rtadt_roc <- timeROC(T = plco_clean$permth_exm[plco_clean$primary_tx=="Radiation + hormone"], delta = plco_clean$mortstat[plco_clean$primary_tx=="Radiation + hormone"], marker = cox40predict_rtadt, cause = 1, weighting="marginal", times = seq(0, 168, by=6))
 
-subperf_trt <- data.frame("Treatment" = c("Prostatectomy", "Radiation alone", "Radiation + hormone"), "Year5_C" = round(c(cox40_prostatectomy$AppCindex$coxph[10], cox40_radiation$AppCindex$coxph[10], cox40_rtadt$AppCindex$coxph[10]), digits=2), "Year10_C" = round(c(cox40_prostatectomy$AppCindex$coxph[20], cox40_radiation$AppCindex$coxph[20], cox40_rtadt$AppCindex$coxph[20]), digits=2), "Year14_C" = round(c(cox40_prostatectomy$AppCindex$coxph[28], cox40_radiation$AppCindex$coxph[28], cox40_rtadt$AppCindex$coxph[28]), digits=2), "Year5_AUC" = round(c(prostatectomy_roc$AUC[11], radiation_roc$AUC[11], rtadt_roc$AUC[11]), digits=2), "Year10_AUC" = round(c(prostatectomy_roc$AUC[21], radiation_roc$AUC[21],rtadt_roc$AUC[21]), digits=2), "Year14_AUC" = round(c(prostatectomy_roc$AUC[29], radiation_roc$AUC[29], rtadt_roc$AUC[29]), digits=2))
+#subperf_trt <- data.frame("Treatment" = c("Prostatectomy", "Radiation alone", "Radiation + hormone"), "Year5_C" = round(c(cox40_prostatectomy$AppCindex$coxph[10], cox40_radiation$AppCindex$coxph[10], cox40_rtadt$AppCindex$coxph[10]), digits=2), "Year10_C" = round(c(cox40_prostatectomy$AppCindex$coxph[20], cox40_radiation$AppCindex$coxph[20], cox40_rtadt$AppCindex$coxph[20]), digits=2), "Year14_C" = round(c(cox40_prostatectomy$AppCindex$coxph[28], cox40_radiation$AppCindex$coxph[28], cox40_rtadt$AppCindex$coxph[28]), digits=2), "Year5_AUC" = round(c(prostatectomy_roc$AUC[11], radiation_roc$AUC[11], rtadt_roc$AUC[11]), digits=2), "Year10_AUC" = round(c(prostatectomy_roc$AUC[21], radiation_roc$AUC[21],rtadt_roc$AUC[21]), digits=2), "Year14_AUC" = round(c(prostatectomy_roc$AUC[29], radiation_roc$AUC[29], rtadt_roc$AUC[29]), digits=2))
+
+subperf_trt <- data.frame("Treatment" = c("Prostatectomy", "Radiation alone", "Radiation + hormone"), "Year5_AUC" = round(c(prostatectomy_roc$AUC[11], radiation_roc$AUC[11], rtadt_roc$AUC[11]), digits=2), "Year10_AUC" = round(c(prostatectomy_roc$AUC[21], radiation_roc$AUC[21],rtadt_roc$AUC[21]), digits=2), "Year14_AUC" = round(c(prostatectomy_roc$AUC[29], radiation_roc$AUC[29], rtadt_roc$AUC[29]), digits=2))
 
 rownames(subperf_trt) <- NULL
-kable(subperf_trt, col.names = c("Treatment", "5 Years", "10 Years", "14 Years", "5 Years", "10 Years", "14 Years")) %>%
-add_header_above(c(" ", "C-Index" = 3, "AUC" = 3), escape=FALSE) %>% column_spec(column = 1, width = "3cm") %>% column_spec(column = 2:7, width = "1.75cm")
+kable(subperf_trt, col.names = c("Treatment", "5 Years", "10 Years", "14 Years")) %>%
+add_header_above(c(" ", "AUC" = 3), escape=FALSE) %>% column_spec(column = 1, width = "3cm") %>% column_spec(column = 2:4, width = "1.75cm")
+
+rm(list=c("subperf_trt", "cox40predict_prostatectomy", "cox40predict_radiation", "cox40predict_rtadt", "radiation_roc", "prostatectomy_roc", "rtadt_roc", "cox40_radiation", "cox40_rtadt", "cox40_prostatectomy"))
 ```
 
 \newpage
 
-Figure 4: Calibration plot, Fine and Gray:
+Figure 4: Calibration performance of our final OC mortality model in PLCO validation sample of 8,220 men with prostate cancer. 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+cutTime <- 14*12   #14 yr cutoff point
+
+km_predictions <- survfit(cox_40, plco_clean)
+
+predict_5 <- km_predictions$surv[km_predictions$time==60,]
+predict_10 <- km_predictions$surv[km_predictions$time==120,]
+predict_14 <- km_predictions$surv[km_predictions$time==168,]
+
+group_5 <- case_when(
+  predict_5 < 0.2 ~ 0.1,
+  predict_5 >= 0.2 & predict_5 < 0.4 ~ 0.3,
+  predict_5 >= 0.4 & predict_5 < 0.6 ~ 0.5,
+  predict_5 >= 0.6 & predict_5 < 0.8 ~ 0.7,
+  predict_5 >= 0.8 ~ 0.9
+)
+
+group_10 <- case_when(
+  predict_10 < 0.2 ~ 0.1,
+  predict_10 >= 0.2 & predict_10 < 0.4 ~ 0.3,
+  predict_10 >= 0.4 & predict_10 < 0.6 ~ 0.5,
+  predict_10 >= 0.6 & predict_10 < 0.8 ~ 0.7,
+  predict_10 >= 0.8 ~ 0.9
+)
+
+group_14 <- case_when(
+  predict_14 < 0.2 ~ 0.1,
+  predict_14 >= 0.2 & predict_14 < 0.4 ~ 0.3,
+  predict_14 >= 0.4 & predict_14 < 0.6 ~ 0.5,
+  predict_14 >= 0.6 & predict_14 < 0.8 ~ 0.7,
+  predict_14 >= 0.8 ~ 0.9
+)
+
+km_5_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_5==0.5,])
+km_5_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_5==0.7,])
+km_5_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_5==0.9,])
+km_10_01 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.1,])
+km_10_03 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.3,])
+km_10_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.5,])
+km_10_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.7,])
+km_10_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.9,])
+km_14_01 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.1,])
+km_14_03 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.3,])
+km_14_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.5,])
+km_14_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.7,])
+km_14_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.9,])
+
+calibration5_data <- data.frame("Year" = rep("5 Years", 3), 
+                                "Group" = c(0.5, 0.7, 0.9), 
+                                "Est" = c(km_5_05$surv[km_5_05$time==60], 
+                                          km_5_07$surv[km_5_07$time==60], 
+                                          km_5_09$surv[km_5_09$time==60]), 
+                                "Lower" = c(km_5_05$lower[km_5_05$time==60], 
+                                          km_5_07$lower[km_5_07$time==60], 
+                                          km_5_09$lower[km_5_09$time==60]),
+                                "Upper" = c(km_5_05$upper[km_5_05$time==60], 
+                                          km_5_07$upper[km_5_07$time==60], 
+                                          km_5_09$upper[km_5_09$time==60]))
+
+calibration10_data <- data.frame("Year" = rep("10 Years", 5), 
+                                 "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
+                                 "Est" = c(km_10_01$surv[km_10_01$time==118], 
+                                           km_10_03$surv[km_10_03$time==120], 
+                                           km_10_05$surv[km_10_05$time==120], 
+                                           km_10_07$surv[km_10_07$time==120], 
+                                           km_10_09$surv[km_10_09$time==120]), 
+                                "Lower" = c(km_10_01$lower[km_10_01$time==118],
+                                         km_10_03$lower[km_10_03$time==120],
+                                         km_10_05$lower[km_10_05$time==120], 
+                                          km_10_07$lower[km_10_07$time==120], 
+                                          km_10_09$lower[km_10_09$time==120]),
+                                "Upper" = c(km_10_01$upper[km_10_01$time==118],
+                                         km_10_03$upper[km_10_03$time==120],
+                                         km_10_05$upper[km_10_05$time==120], 
+                                          km_10_07$upper[km_10_07$time==120], 
+                                          km_10_09$upper[km_10_09$time==120]))
+
+calibration14_data <- data.frame("Year" = rep("10 Years", 5), 
+                                 "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
+                                 "Est" = c(km_14_01$surv[km_14_01$time==164], 
+                                           km_14_03$surv[km_14_03$time==168], 
+                                           km_14_05$surv[km_14_05$time==168], 
+                                           km_14_07$surv[km_14_07$time==168], 
+                                           km_14_09$surv[km_14_09$time==168]), 
+                                "Lower" = c(km_14_01$lower[km_14_01$time==164],
+                                         km_14_03$lower[km_14_03$time==168],
+                                         km_14_05$lower[km_14_05$time==168], 
+                                          km_14_07$lower[km_14_07$time==168], 
+                                          km_14_09$lower[km_14_09$time==168]),
+                                "Upper" = c(km_14_01$upper[km_14_01$time==164],
+                                         km_14_03$upper[km_14_03$time==168],
+                                         km_14_05$upper[km_14_05$time==168], 
+                                          km_14_07$upper[km_14_07$time==168], 
+                                          km_14_09$upper[km_14_09$time==168]))
+
+myplot <- ggplot() + geom_line(data = calibration5_data, aes(x=Group, y=Est), 
+                               color = "darkblue") + 
+  geom_errorbar(data = calibration5_data, aes(x = Group, ymin = Lower, 
+                                              ymax = Upper, width = 0.05), 
+                color = "darkblue") + geom_line(data = calibration10_data, 
+                                                aes(x=Group, y=Est), 
+                                                color = "mediumpurple4") + 
+  geom_errorbar(data = calibration10_data, aes(x = Group, ymin = Lower, 
+                                               ymax = Upper, width = 0.05), 
+                color = "mediumpurple4") + geom_line(data = calibration14_data, 
+                                                     aes(x=Group, y=Est), 
+                                                     color = "gray74") + 
+  geom_errorbar(data = calibration14_data, aes(x = Group, ymin = Lower, 
+                                               ymax = Upper), color = "gray74", 
+                width = 0.05) + scale_x_continuous(name = "Predicted OCM Survival", 
+                                                   limits = c(0, 1), 
+                                                   breaks = seq(0, 1, by=0.2)) + 
+  scale_y_continuous(name = "Observed OCM Survival", limits = c(0, 1), 
+                     breaks = seq(0, 1.2, by=0.2)) + theme_bw() + 
+  geom_abline(slope = 1, intercept = 0)  + 
+  labs(caption = "Black line: perfect calibration. Blue line: calibration at 
+       5 years. Purple line: calibration at 10 years. Gray line: calibration 
+       at 14 years.") #+ theme(text=element_text(size=18))
+
+myplot
+
+rm(list=c("myplot"))
+```
+
+\newpage
+
+Figure 5: Forest plot of predictors for final OC mortality prediction model fit in NHANES training data. The model also includes interactions between age and diabetes, education, hypertension, and stroke.
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+table_model <- summary(cox_40)$conf.int
+table_model[1, 1] <- exp(10*log(table_model[1, 1]))
+table_model[1, 3] <- exp(10*log(table_model[1, 3]))
+table_model[1, 4] <- exp(10*log(table_model[1, 4]))
+
+cox_plotdata <- data.frame("Variable" = c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Hypertension (ref: no hypertension)", "Separated (ref: married)", "Single (ref: married)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)", "Underweight, BMI <18.5 (ref: BMI 18.5-25)", "Overweight, BMI 25-40 (ref: BMI 18.5-25)", "Obese, BMI 40+ (ref: BMI 18.5-25)", "Prostate cancer (ref: no prostate cancer)"), "Effect" = table_model[1:16,1], "Lower" = table_model[1:16,3], "Upper" = table_model[1:16,4], "Label" = paste(round(table_model[1:16,1], digits=2), " (", round(table_model[1:16,3], digits=2), ",", round(table_model[1:16,4], digits=2), ")", sep=""))
+
+cox_plotdata$Variable <- factor(cox_plotdata$Variable, levels= c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Hypertension (ref: no hypertension)", "Separated (ref: married)", "Single (ref: married)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)", "Underweight, BMI <18.5 (ref: BMI 18.5-25)", "Overweight, BMI 25-40 (ref: BMI 18.5-25)", "Obese, BMI 40+ (ref: BMI 18.5-25)", "Prostate cancer (ref: no prostate cancer)"), ordered=TRUE)
+
+adj_plot <- ggplot(cox_plotdata, aes(fct_rev(Variable), log(Effect))) + geom_point() + geom_errorbar(aes(ymin=log(Lower), ymax=log(Upper), width=0.1)) + coord_flip(ylim=c(-1.0, 5)) + labs(y = "Hazard Ratio and 95% CI", x = "", caption=TeX('Protective $\\leftarrow \\rightarrow$ Harmful' )) + geom_hline(yintercept=0, linetype="dashed", color = "black") + theme(panel.background = element_rect(fill="white"), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), legend.position="bottom", plot.caption = element_text(hjust = 0.1)) + geom_rect(fill="white", ymin=4.7, ymax=Inf, xmin=-Inf, xmax=Inf) + annotate(geom = 'text', label = cox_plotdata$Label, x = cox_plotdata$Variable, y = 2, hjust = 0, vjust = 0.5) + scale_y_continuous(breaks=log(c(0.25, 0.5, 1, 2, 4)), labels=c("0.25", "0.5", "1.0", "2.0", "4.0")) 
+ 
+adj_plot
+
+#ggsave("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Code/forest_plot.pdf", adj_plot, width = 12, height = 8)
+rm(list=c("adj_plot", "cox_plotdata", "table_model"))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 3: Forest plot of final Cox model:
+cox_plotdata <- data.frame("Variable" = c("Age", "Diabetes", "9th-11th Grade", "High School", "Some College", "College", "Hypertension", "Separated", "Single", "Current Smoker", "Former Smoker", "Stroke", "Underweight (BMI <18.5)", "Overweight (BMI 25-40)", "Obese (BMI 40+)", "Prostate Cancer", "Age*Diabetes", "Age*9th-11th Grade", "Age*High School", "Age*Some College", "Age*College", "Age*Hypertension", "Age*Stroke"), "Effect" = summary(cox_40)$conf.int[,1], "Lower" = summary(cox_40)$conf.int[,3], "Upper" = summary(cox_40)$conf.int[,4], "Label" = paste(round(summary(cox_40)$conf.int[,1], digits=2), " (", round(summary(cox_40)$conf.int[,3], digits=2), ",", round(summary(cox_40)$conf.int[,4], digits=2), ")", sep=""))
+
+cox_plotdata$Variable <- factor(cox_plotdata$Variable, levels= c("Age", "Diabetes", "9th-11th Grade", "High School", "Some College", "College", "Hypertension", "Separated", "Single", "Current Smoker", "Former Smoker", "Stroke", "Underweight (BMI <18.5)", "Overweight (BMI 25-40)", "Obese (BMI 40+)", "Prostate Cancer", "Age*Diabetes", "Age*9th-11th Grade", "Age*High School", "Age*Some College", "Age*College", "Age*Hypertension", "Age*Stroke"), ordered=TRUE)
+
+adj_plot <- ggplot(cox_plotdata, aes(fct_rev(Variable), log(Effect))) + geom_point() + geom_errorbar(aes(ymin=log(Lower), ymax=log(Upper), width=0.1)) + coord_flip(ylim=c(-1.0, 3)) + labs(y = "Hazard Ratio and 95% CI", x = "", caption=TeX('Protective $\\leftarrow \\rightarrow$ Harmful' )) + geom_hline(yintercept=0, linetype="dashed", color = "black") + theme(panel.background = element_rect(fill="white"), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), legend.position="bottom", text=element_text(size=14), plot.caption = element_text(size=14, hjust = 0)) + geom_rect(fill="white", ymin=4.7, ymax=Inf, xmin=-Inf, xmax=Inf) + annotate(geom = 'text', label = cox_plotdata$Label, x = cox_plotdata$Variable, y = 1.7, hjust = 0, vjust = 0.5) + scale_y_continuous(breaks=log(c(0.25, 0.5, 1, 2, 4)), labels=c("0.25", "0.5", "1.0", "2.0", "4.0")) 
+ 
+#adj_plot
+
+rm(list=c("cox_plotdata", "adj_plot"))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Fine and Gray calibration plot:
 cutTime <- 14*12   #14 yr cutoff point
 
 dat <- plco_clean[, c("pc_status", "pc_time_14yr", "linpred")]
@@ -526,157 +742,18 @@ myplot <- ggplot() + geom_line(data = calibration5_data, aes(x=Group, y=Est),
        5 years. Purple line: calibration at 10 years. Gray line: calibration 
        at 14 years.")
 
-myplot
-```
+#myplot
 
-Figure 5: Calibration plot, cause-specific:
-```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
-cutTime <- 14*12   #14 yr cutoff point
-
-km_predictions <- survfit(cox_40, plco_clean)
-
-predict_5 <- km_predictions$surv[km_predictions$time==60,]
-predict_10 <- km_predictions$surv[km_predictions$time==120,]
-predict_14 <- km_predictions$surv[km_predictions$time==168,]
-
-group_5 <- case_when(
-  predict_5 < 0.2 ~ 0.1,
-  predict_5 >= 0.2 & predict_5 < 0.4 ~ 0.3,
-  predict_5 >= 0.4 & predict_5 < 0.6 ~ 0.5,
-  predict_5 >= 0.6 & predict_5 < 0.8 ~ 0.7,
-  predict_5 >= 0.8 ~ 0.9
-)
-
-group_10 <- case_when(
-  predict_10 < 0.2 ~ 0.1,
-  predict_10 >= 0.2 & predict_10 < 0.4 ~ 0.3,
-  predict_10 >= 0.4 & predict_10 < 0.6 ~ 0.5,
-  predict_10 >= 0.6 & predict_10 < 0.8 ~ 0.7,
-  predict_10 >= 0.8 ~ 0.9
-)
-
-group_14 <- case_when(
-  predict_14 < 0.2 ~ 0.1,
-  predict_14 >= 0.2 & predict_14 < 0.4 ~ 0.3,
-  predict_14 >= 0.4 & predict_14 < 0.6 ~ 0.5,
-  predict_14 >= 0.6 & predict_14 < 0.8 ~ 0.7,
-  predict_14 >= 0.8 ~ 0.9
-)
-
-km_5_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_5==0.5,])
-km_5_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_5==0.7,])
-km_5_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_5==0.9,])
-km_10_01 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.1,])
-km_10_03 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.3,])
-km_10_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.5,])
-km_10_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.7,])
-km_10_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.9,])
-km_14_01 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.1,])
-km_14_03 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.3,])
-km_14_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.5,])
-km_14_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.7,])
-km_14_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_14==0.9,])
-
-calibration5_data <- data.frame("Year" = rep("5 Years", 3), 
-                                "Group" = c(0.5, 0.7, 0.9), 
-                                "Est" = c(km_5_05$surv[km_5_05$time==60], 
-                                          km_5_07$surv[km_5_07$time==60], 
-                                          km_5_09$surv[km_5_09$time==60]), 
-                                "Lower" = c(km_5_05$lower[km_5_05$time==60], 
-                                          km_5_07$lower[km_5_07$time==60], 
-                                          km_5_09$lower[km_5_09$time==60]),
-                                "Upper" = c(km_5_05$upper[km_5_05$time==60], 
-                                          km_5_07$upper[km_5_07$time==60], 
-                                          km_5_09$upper[km_5_09$time==60]))
-
-calibration10_data <- data.frame("Year" = rep("10 Years", 5), 
-                                 "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
-                                 "Est" = c(km_10_01$surv[km_10_01$time==118], 
-                                           km_10_03$surv[km_10_03$time==120], 
-                                           km_10_05$surv[km_10_05$time==120], 
-                                           km_10_07$surv[km_10_07$time==120], 
-                                           km_10_09$surv[km_10_09$time==120]), 
-                                "Lower" = c(km_10_01$lower[km_10_01$time==118],
-                                         km_10_03$lower[km_10_03$time==120],
-                                         km_10_05$lower[km_10_05$time==120], 
-                                          km_10_07$lower[km_10_07$time==120], 
-                                          km_10_09$lower[km_10_09$time==120]),
-                                "Upper" = c(km_10_01$upper[km_10_01$time==118],
-                                         km_10_03$upper[km_10_03$time==120],
-                                         km_10_05$upper[km_10_05$time==120], 
-                                          km_10_07$upper[km_10_07$time==120], 
-                                          km_10_09$upper[km_10_09$time==120]))
-
-calibration14_data <- data.frame("Year" = rep("10 Years", 5), 
-                                 "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
-                                 "Est" = c(km_14_01$surv[km_14_01$time==164], 
-                                           km_14_03$surv[km_14_03$time==168], 
-                                           km_14_05$surv[km_14_05$time==168], 
-                                           km_14_07$surv[km_14_07$time==168], 
-                                           km_14_09$surv[km_14_09$time==168]), 
-                                "Lower" = c(km_14_01$lower[km_14_01$time==164],
-                                         km_14_03$lower[km_14_03$time==168],
-                                         km_14_05$lower[km_14_05$time==168], 
-                                          km_14_07$lower[km_14_07$time==168], 
-                                          km_14_09$lower[km_14_09$time==168]),
-                                "Upper" = c(km_14_01$upper[km_14_01$time==164],
-                                         km_14_03$upper[km_14_03$time==168],
-                                         km_14_05$upper[km_14_05$time==168], 
-                                          km_14_07$upper[km_14_07$time==168], 
-                                          km_14_09$upper[km_14_09$time==168]))
-
-myplot <- ggplot() + geom_line(data = calibration5_data, aes(x=Group, y=Est), 
-                               color = "darkblue") + 
-  geom_errorbar(data = calibration5_data, aes(x = Group, ymin = Lower, 
-                                              ymax = Upper, width = 0.05), 
-                color = "darkblue") + geom_line(data = calibration10_data, 
-                                                aes(x=Group, y=Est), 
-                                                color = "mediumpurple4") + 
-  geom_errorbar(data = calibration10_data, aes(x = Group, ymin = Lower, 
-                                               ymax = Upper, width = 0.05), 
-                color = "mediumpurple4") + geom_line(data = calibration14_data, 
-                                                     aes(x=Group, y=Est), 
-                                                     color = "gray74") + 
-  geom_errorbar(data = calibration14_data, aes(x = Group, ymin = Lower, 
-                                               ymax = Upper), color = "gray74", 
-                width = 0.05) + scale_x_continuous(name = "Predicted OCM Survival", 
-                                                   limits = c(0, 1), 
-                                                   breaks = seq(0, 1, by=0.2)) + 
-  scale_y_continuous(name = "Observed OCM Survival", limits = c(0, 1), 
-                     breaks = seq(0, 1.2, by=0.2)) + theme_bw() + 
-  geom_abline(slope = 1, intercept = 0)  + 
-  labs(caption = "Black line: perfect calibration. Blue line: calibration at 
-       5 years. Purple line: calibration at 10 years. Gray line: calibration 
-       at 14 years.")
-
-myplot
+rm(list=c("calibration10_data", "calibration14_data", "calibration5_data", "cuminc_10", "cuminc_14", "cuminc_5", "km_10_01", "km_10_03", "km_10_05", "km_10_07", "km_10_09", "km_14_01", "km_14_03", "km_14_05", "km_14_07", "km_14_09", "km_5_05", "km_5_07", "km_5_09", "km_predictions", "group_10", "group_14", "group_5", "predict_10", "predict_14", "predict_5"))
 ```
 
 \newpage
 
-Figure 6: Sample incidence curves. We consider 5 different patients, with the characteristics:
-
+Figure 6: Sample incidence curves predicted using our OC mortality model for 5 different patients taken from our PLCO validation sample. 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
-cutTime <- 14*12   #14 yr cutoff point
-dat <- plco_clean[, c("pc_status", "pc_time_14yr", "linpred")]
-dat <- dat[complete.cases(dat), ]
-eve.ocm <- dat$pc_status == 1
-eve.pcsm <- dat$pc_status == 2
-eve.cens <- dat$pc_status == 0 
-  
-fstatus <- rep(0,times = nrow(dat))
-fstatus[which(eve.ocm)] <- 1
-fstatus[which(eve.pcsm)] <- 2
-ftime <- dat$pc_time_14yr
+km_predictions <- survfit(cox_40, plco_clean)
 
-fg_covariates <- dat$linpred
-
-finegray_pc <- crr(ftime = ftime, fstatus = fstatus, cov1 = fg_covariates)
-#summary(finegray_pc)
-
-finegray_predictions <- predict(finegray_pc, cov1 = fg_covariates)
-
-predict_10 <- finegray_predictions[finegray_predictions[,1]==120,-1]
+predict_10 <- km_predictions$surv[km_predictions$time==120,]
 
 set.seed(653)
 patient1 <- base::sample(which(predict_10 < 0.2), size = 1)
@@ -685,27 +762,30 @@ patient3 <- sample(which(predict_10 >= 0.4 & predict_10 < 0.6), size = 1)
 patient4 <- sample(which(predict_10 >= 0.6 & predict_10 < 0.8), size = 1)
 patient5 <- sample(which(predict_10 >= 0.8), size = 1)
 
-example_dat <- data.frame("Patient" = c(rep(1, nrow(finegray_predictions)), rep(2, nrow(finegray_predictions)), rep(3, nrow(finegray_predictions)), rep(4, nrow(finegray_predictions)), rep(5, nrow(finegray_predictions))), "Time" = rep(finegray_predictions[,1], 5), "Risk" = c(finegray_predictions[,patient1+1], finegray_predictions[,patient2+1], finegray_predictions[,patient3+1], finegray_predictions[,patient4+1], finegray_predictions[,patient5+1]))
+example_dat <- data.frame("Patient" = c(rep(1, nrow(km_predictions$surv)), rep(2, nrow(km_predictions$surv)), rep(3, nrow(km_predictions$surv)), rep(4, nrow(km_predictions$surv)), rep(5, nrow(km_predictions$surv))), "Time" = rep(km_predictions$time, 5), "Risk" = c(km_predictions$surv[,patient1], km_predictions$surv[,patient2], km_predictions$surv[,patient3], km_predictions$surv[,patient4], km_predictions$surv[,patient5]))
 
 example_dat$Patient <- factor(example_dat$Patient, levels=c(1:5), labels=c("Patient 1", "Patient 2", "Patient 3", "Patient 4", "Patient 5"), ordered = TRUE)
 
-ggplot() + geom_step(data = example_dat, aes(x = Time, y = Risk*100, group = fct_rev(Patient), color = fct_rev(Patient)), size = 1.5, direction = "hv", alpha = 1) + scale_x_continuous("Years", limits = c(0, 168), breaks = seq(0, 168, by=48), labels = c("0", "4", "8", "12")) + scale_y_continuous("Risk (%)", breaks = c(0, 25, 50, 75, 100)) + coord_cartesian(ylim=c(0, 100)) + theme_bw() + guides(color=guide_legend(title="Patient"))
+curveplot <- ggplot() + geom_step(data = example_dat, aes(x = Time, y = Risk*100, group = fct_rev(Patient), color = fct_rev(Patient)), size = 1.5, direction = "hv", alpha = 1) + scale_x_continuous("Years", limits = c(0, 168), breaks = seq(0, 168, by=48), labels = c("0", "4", "8", "12")) + scale_y_continuous("Survival (%)", breaks = c(0, 25, 50, 75, 100)) + coord_cartesian(ylim=c(0, 100)) + theme_bw() + guides(color=guide_legend(title="Patient"))
+
+curveplot
+
+rm(list=c("curveplot", "example_dat", "patient1", "patient2", "patient3", "patient4", "patient5"))
 ```
 
-Patient 1 (lowest risk): age 58, hypertensive, college graduate, married, former smoker, BMI 25-40
+Patient 1 (very high risk): age 85, no comorbidities, some college, married, current smoker, BMI 25-40
 
-Patient 2 (low risk): age 70, no comorbidities, 9th-11th grade education, married, former smoker, BMI 18.5-25
+Patient 2 (high risk): age 82, hypertensive, college graduate, married, former smoker, BMI 18.5-25
 
-Patient 3 (moderate risk): age 80, hypertensive, high school graduate, separated, former smoker, BMI 25-40
+Patient 3 (moderate risk): age 71, hypertensive, high school graduate, married, current smoker, BMI 18.5-25
 
-Patient 4 (high risk): age 82, no comorbidities, 9th-11th grade education, separated, never smoker, BMI 25-40
+Patient 4 (low risk): age 66, no comorbidities, college graduate, separated, current smoker, BMI 18.5-25
 
-Patient 5 (highest risk): age 80, no comorbidities, high school graduate, married, former smoker, BMI < 18.5
+Patient 5 (very low risk): age 62, hypertensive, some college, married, former smoker, BMI 25-40
 
-\newpage
-
-Figure 7: Treatment concordance with OCM predictions:
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 6: Treatment concordance with OCM predictions:
+
 prostatedata <- read_csv("~/Box/PLCO Data/Prostate/pros_data_nov18_d070819.csv.zip")
 cancer <- filter(prostatedata, pros_cancer == 1)
 rm(list = c("prostatedata"))
@@ -946,34 +1026,44 @@ plco_clean2$pc_status <- ifelse(plco_clean2$permth_exm >= cutTime, 0,
                                plco_clean2$mortstat2)
 plco_clean2$linpred <- predict(object=cox_40, newdata = plco_clean2, type="lp")
 
-dat <- plco_clean2[, c("pc_status", "pc_time_14yr", "linpred")]
-dat <- dat[complete.cases(dat), ]
-eve.ocm <- dat$pc_status == 1
-eve.pcsm <- dat$pc_status == 2
-eve.cens <- dat$pc_status == 0 
+#dat <- plco_clean2[, c("pc_status", "pc_time_14yr", "linpred")]
+#dat <- dat[complete.cases(dat), ]
+#eve.ocm <- dat$pc_status == 1
+#eve.pcsm <- dat$pc_status == 2
+#eve.cens <- dat$pc_status == 0 
   
-fstatus <- rep(0,times = nrow(dat))
-fstatus[which(eve.ocm)] <- 1
-fstatus[which(eve.pcsm)] <- 2
-ftime <- dat$pc_time_14yr
+#fstatus <- rep(0,times = nrow(dat))
+#fstatus[which(eve.ocm)] <- 1
+#fstatus[which(eve.pcsm)] <- 2
+#ftime <- dat$pc_time_14yr
 
-fg_covariates <- dat$linpred
+#fg_covariates <- dat$linpred
 
-finegray_pc <- crr(ftime = ftime, fstatus = fstatus, cov1 = fg_covariates)
+#finegray_pc <- crr(ftime = ftime, fstatus = fstatus, cov1 = fg_covariates)
 
-finegray_predictions <- predict(finegray_pc, cov1 = fg_covariates)
+#finegray_predictions <- predict(finegray_pc, cov1 = fg_covariates)
+#incs <- finegray_predictions[2:nrow(finegray_predictions),1] - finegray_predictions[1:(nrow(finegray_predictions)-1), 1]
+#rmst <- (incs %*% (1-finegray_predictions[-168, -1]))/12
 
-predict_10 <- finegray_predictions[finegray_predictions[,1]==120,-1]
+km_predictions <- survfit(cox_40, plco_clean2)
+incs2 <- km_predictions$time[2:length(km_predictions$time)] - km_predictions$time[1:(length(km_predictions$time)-1)]
+rmst2 <- (incs2 %*% (km_predictions$surv[-202,]))/12
 
-group_10 <- case_when(
-  predict_10 < 0.2 ~ 0.1,
-  predict_10 >= 0.2 & predict_10 < 0.4 ~ 0.3,
-  predict_10 >= 0.4 & predict_10 < 0.6 ~ 0.5,
-  predict_10 >= 0.6 & predict_10 < 0.8 ~ 0.7,
-  predict_10 >= 0.8 ~ 0.9
+#finegray_group <- case_when(
+#  rmst >= 10 ~ "10+",
+#  rmst >= 5 & rmst < 10 ~ "5-10",
+#  rmst < 5 ~ "< 5",
+#)
+
+causespecific_group <- case_when(
+  rmst2 >= 10 ~ "10+",
+  rmst2 >= 5 & rmst2 < 10 ~ "5-10",
+  rmst2 < 5 ~ "< 5",
 )
 
-plco_clean2$riskgroup <- factor(group_10, levels=c(0.1, 0.3, 0.5, 0.7, 0.9), labels=c("Very low", "Low", "Moderate", "High", "Very high"))
+plco_clean2$riskgroup <- factor(causespecific_group, levels=c("10+", "5-10", "< 5"), ordered=TRUE)
+
+plco_clean2$lifeexpectancy <- as.numeric(t(rmst2)) 
 
 plco_clean2$weight <- case_when(
   plco_clean2$underweight=="Yes"~ "Underweight (BMI < 18.5)",
@@ -986,22 +1076,19 @@ plco_clean2$weight <- factor(plco_clean2$weight, levels=c("Underweight (BMI < 18
 
 plco_clean2$mortstat <- factor(plco_clean2$mortstat2, levels=c(0, 1, 2), labels = c("Alive", "Died of OC", "Died of PC"))
 
-plco_clean2$ocm_10_group <- ifelse(predict_10 <= 0.5, "Low risk", "High risk")
+#plco_clean2$ocm_10_group <- ifelse(predict_10 <= 0.5, "Low risk", "High risk")
  
-predict_5 <- finegray_predictions[finegray_predictions[,1]==60,-1]
-plco_clean2$ocm_5_group <- ifelse(predict_5 <= 0.5, "Low risk", "High risk")
-
-plco_clean2$intrisk <- rowSums(cbind(plco_clean2$tstage=="T2b-T2c", plco_clean2$gleason=="7", plco_clean2$dx_psa >= 10 & plco_clean2$dx_psa <= 20))
+#predict_5 <- finegray_predictions[finegray_predictions[,1]==60,-1]
+#plco_clean2$ocm_5_group <- ifelse(predict_5 <= 0.5, "Low risk", "High risk")
 
 plco_clean2$pc_risk_group <- case_when(
   plco_clean2$tstage=="T1-T2a" & plco_clean2$gleason =="<= 6" & plco_clean2$dx_psa < 10 & plco_clean2$nstage=="N0" ~ "Low",
-  plco_clean2$tstage!= "T3a-T4" & plco_clean2$gleason != "8" & plco_clean2$gleason != "9" & plco_clean2$gleason != "10" & plco_clean2$dx_psa <= 20 & plco_clean2$intrisk == 1 & plco_clean2$nstage=="N0" ~ "Favorable intermediate",
-  plco_clean2$tstage!= "T3a-T4" & plco_clean2$gleason != "8" & plco_clean2$gleason != "9" & plco_clean2$gleason != "10" & plco_clean2$dx_psa <= 20 & plco_clean2$intrisk >= 2 & plco_clean2$nstage=="N0" ~ "Unfavorable intermediate",
-  plco_clean2$nstage=="N0" & (plco_clean2$tstage=="T3a-T4" | plco_clean2$gleason=="8" | plco_clean2$gleason=="9" | plco_clean2$gleason=="10" | plco_clean2$dx_psa > 20) ~ "High/very high",
+  plco_clean2$tstage!= "T3a-T4" & plco_clean2$gleason == "7" & plco_clean2$dx_psa <= 20 & plco_clean2$nstage=="N0" ~ "Intermediate",
+  plco_clean2$nstage=="N0" & (plco_clean2$tstage=="T3a-T4" | plco_clean2$gleason=="8" | plco_clean2$gleason=="9" | plco_clean2$gleason=="10" | plco_clean2$dx_psa > 20) ~ "High",
   plco_clean2$nstage=="N1" | plco_clean2$nstage=="N2" ~ "Regional"
 )
 
-plco_clean2$pc_risk_group <- factor(plco_clean2$pc_risk_group, levels=c("Low", "Favorable intermediate", "Unfavorable intermediate", "High/very high", "Regional"), ordered = TRUE)
+plco_clean2$pc_risk_group <- factor(plco_clean2$pc_risk_group, levels=c("Low", "Intermediate", "High", "Regional"), ordered = TRUE)
 
 var_label(plco_clean2$age) <- "Age (years)"
 var_label(plco_clean2$race2) <- "Race"
@@ -1026,68 +1113,171 @@ var_label(plco_clean2$dx_psa) <- "PSA at diagnosis"
 var_label(plco_clean2$primary_tx) <- "Treatment"
 var_label(plco_clean2$pc_risk_group) <- "Prostate cancer risk group"
 
-plco_clean2$treatrec <- case_when(
-  plco_clean2$pc_risk_group=="Low" ~ "Active surveillance",
-  plco_clean2$pc_risk_group=="Favorable intermediate" & plco_clean2$ocm_10_group=="High risk" ~ "Active surveillance",
-  plco_clean2$pc_risk_group=="Favorable intermediate" & plco_clean2$ocm_10_group=="Low risk" ~ "Radiation alone or prostatectomy",
-  plco_clean2$pc_risk_group=="Unfavorable intermediate" & plco_clean2$ocm_10_group=="High risk" ~ "Active surveillance",
-  plco_clean2$pc_risk_group=="Unfavorable intermediate" & plco_clean2$ocm_10_group=="Low risk" ~ "Radiation alone, prostatectomy, \nradiation + hormone",
+#plco_clean2$treatrec <- case_when(
+ # plco_clean2$pc_risk_group=="Low" ~ "Active surveillance",
+#  plco_clean2$pc_risk_group=="Favorable intermediate" & plco_clean2$ocm_10_group=="High risk" ~ "Active surveillance",
+#  plco_clean2$pc_risk_group=="Favorable intermediate" & plco_clean2$ocm_10_group=="Low risk" ~ "Radiation alone or prostatectomy",
+#  plco_clean2$pc_risk_group=="Unfavorable intermediate" & plco_clean2$ocm_10_group=="High risk" ~ "Active surveillance",
+#  plco_clean2$pc_risk_group=="Unfavorable intermediate" & plco_clean2$ocm_10_group=="Low risk" ~ "Radiation alone, prostatectomy, \nradiation + hormone",
   #plco_clean2$pc_risk_group=="High/very high" & plco_clean2$ocm_5_group=="High risk" ~ "Hormone alone or radiation alone",
-  plco_clean2$pc_risk_group=="High/very high" & plco_clean2$ocm_5_group=="Low risk" ~ "Prostatectomy or radiation + hormone",
+ # plco_clean2$pc_risk_group=="High/very high" & plco_clean2$ocm_5_group=="Low risk" ~ "Prostatectomy or radiation + hormone",
  # plco_clean2$pc_risk_group=="Regional" & plco_clean2$ocm_5_group=="High risk" ~ "Active surveillance or hormone alone",
-  plco_clean2$pc_risk_group=="Regional" & plco_clean2$ocm_5_group=="Low risk" ~ "Radiation + hormone"
-)
+  #plco_clean2$pc_risk_group=="Regional" & plco_clean2$ocm_5_group=="Low risk" ~ "Radiation + hormone"
+#)
 
 plco_clean2$primary_tx <- factor(plco_clean2$primary_tx, levels=c("No known treatment", "Other ablative treatment", "Hormone alone", "Radiation alone", "Prostatectomy", "Radiation + hormone"), labels=c("Active surveillance", "Other ablative treatment", "Hormone alone", "Radiation alone", "Prostatectomy", "Radiation + hormone"), ordered=TRUE)
 
-plco_clean2$treatrec <- factor(plco_clean2$treatrec, levels=c("Active surveillance", "Radiation alone or prostatectomy", "Radiation + hormone", "Radiation alone, prostatectomy, \nradiation + hormone", "Prostatectomy or radiation + hormone"), ordered=TRUE)
+#plco_clean2$treatrec <- factor(plco_clean2$treatrec, levels=c("Active surveillance", "Radiation alone or prostatectomy", "Radiation + hormone", "Radiation alone, prostatectomy, \nradiation + hormone", "Prostatectomy or radiation + hormone"), ordered=TRUE)
 
-palette <- brewer.pal(8, name = "BuPu")
-recplot <- ggplot(data = plco_clean2[!is.na(plco_clean2$treatrec),], aes(x=treatrec, y = primary_tx, color = riskgroup)) + geom_point(position="jitter") + theme_bw() + theme(axis.text.x = element_text(angle = 90)) + coord_flip() + ylab("Actual treatment") + xlab("NCCN recommended treatment") + scale_color_manual(name = "OCM Risk", values = palette[4:8])
+#palette <- brewer.pal(8, name = "BuPu")
+#recplot <- ggplot(data = plco_clean2[!is.na(plco_clean2$treatrec),], aes(x=treatrec, y = primary_tx, color = riskgroup)) + geom_point(position="jitter") + theme_bw() + theme(axis.text.x = element_text(angle = 90)) + coord_flip() + ylab("Actual treatment") + xlab("NCCN recommended treatment") + scale_color_manual(name = "OCM Risk", values = palette[4:8])
 
-recplot
-```
-
-Figure 8: Distribution of treatment across PC and OC risk:
-```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
-palette <- brewer.pal(8, name = "BuPu")
-trtplot <- ggplot(data = plco_clean2[!is.na(plco_clean2$pc_risk_group),], aes(x=pc_risk_group, y = riskgroup, color = primary_tx)) + geom_point(position="jitter") + theme_bw() + theme(axis.text.x = element_text(angle = 90)) + coord_flip() + ylab("OC Mortality Risk") + xlab("PC Mortality Risk") + scale_color_manual(name = "Treatment", values = palette[3:8])
-
-trtplot
-
+#recplot
 ```
 
 \newpage
-\blandscape
-Table 4: Descriptions of life expectancy (grouped by risk of OCM at 10 years):
+
+Table 4: Characteristics of 7,596 men in PLCO, grouped by years of life remaining up to 17 years.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
-plco_clean2$concordance <- case_when(
-  plco_clean2$treatrec=="Active surveillance" & plco_clean2$primary_tx=="Active surveillance" ~ "Concordant",
-  plco_clean2$treatrec=="Active surveillance" & plco_clean2$primary_tx!="Active surveillance" ~ "Too aggressive",
-  plco_clean2$treatrec=="Radiation alone or prostatectomy" & (plco_clean2$primary_tx=="Radiation alone" | plco_clean2$primary_tx=="Prostatectomy") ~ "Concordant",
-  plco_clean2$treatrec=="Radiation alone or prostatectomy" & (plco_clean2$primary_tx=="Active surveillance"  | plco_clean2$primary_tx=="Other ablative treatment" | plco_clean2$primary_tx=="Hormone alone") ~ "Not aggressive enough",
-  plco_clean2$treatrec=="Radiation alone or prostatectomy" & plco_clean2$primary_tx=="Radiation + hormone" ~ "Too aggressive",
-  plco_clean2$treatrec=="Radiation + hormone" & plco_clean2$primary_tx=="Radiation + hormone" ~ "Concordant",
-  plco_clean2$treatrec=="Radiation + hormone" & (plco_clean2$primary_tx=="Active surveillance" | plco_clean2$primary_tx=="Other ablative treatment" | plco_clean2$primary_tx=="Hormone alone" | plco_clean2$primary_tx=="Radiation alone" | plco_clean2$primary_tx=="Prostatectomy") ~ "Not aggressive enough",
-  plco_clean2$treatrec=="Radiation alone, prostatectomy, \nradiation + hormone" & (plco_clean2$primary_tx=="Radiation alone" | plco_clean2$primary_tx=="Prostatectomy" | plco_clean2$primary_tx=="Radiation + hormone") ~ "Concordant",
-  plco_clean2$treatrec=="Radiation alone, prostatectomy, \nradiation + hormone" & (plco_clean2$primary_tx=="Active surveillance" | plco_clean2$primary_tx=="Other ablative treatment" | plco_clean2$primary_tx=="Hormone alone") ~ "Not aggressive enough",
-plco_clean2$treatrec=="Prostatectomy or radiation + hormone" & (plco_clean2$primary_tx=="Prostatectomy" | plco_clean2$primary_tx=="Radiation + hormone") ~ "Concordant",
-plco_clean2$treatrec=="Prostatectomy or radiation + hormone" & plco_clean2$primary_tx!="Prostatectomy" & plco_clean2$primary_tx!="Radiation + hormone" ~ "Not aggressive enough"
+#plco_clean2$concordance <- case_when(
+ # plco_clean2$treatrec=="Active surveillance" & plco_clean2$primary_tx=="Active surveillance" ~ "Concordant",
+#  plco_clean2$treatrec=="Active surveillance" & plco_clean2$primary_tx!="Active surveillance" ~ "Too aggressive",
+#  plco_clean2$treatrec=="Radiation alone or prostatectomy" & (plco_clean2$primary_tx=="Radiation alone" | plco_clean2$primary_tx=="Prostatectomy") ~ "Concordant",
+ # plco_clean2$treatrec=="Radiation alone or prostatectomy" & (plco_clean2$primary_tx=="Active surveillance"  | plco_clean2$primary_tx=="Other ablative treatment" | plco_clean2$primary_tx=="Hormone alone") ~ "Not aggressive enough",
+ # plco_clean2$treatrec=="Radiation alone or prostatectomy" & plco_clean2$primary_tx=="Radiation + hormone" ~ "Too aggressive",
+#  plco_clean2$treatrec=="Radiation + hormone" & plco_clean2$primary_tx=="Radiation + hormone" ~ "Concordant",
+#  plco_clean2$treatrec=="Radiation + hormone" & (plco_clean2$primary_tx=="Active surveillance" | plco_clean2$primary_tx=="Other ablative treatment" | plco_clean2$primary_tx=="Hormone alone" | plco_clean2$primary_tx=="Radiation alone" | plco_clean2$primary_tx=="Prostatectomy") ~ "Not aggressive enough",
+#  plco_clean2$treatrec=="Radiation alone, prostatectomy, \nradiation + hormone" & (plco_clean2$primary_tx=="Radiation alone" | plco_clean2$primary_tx=="Prostatectomy" | plco_clean2$primary_tx=="Radiation + hormone") ~ "Concordant",
+ # plco_clean2$treatrec=="Radiation alone, prostatectomy, \nradiation + hormone" & (plco_clean2$primary_tx=="Active surveillance" | plco_clean2$primary_tx=="Other ablative treatment" | plco_clean2$primary_tx=="Hormone alone") ~ "Not aggressive enough",
+#plco_clean2$treatrec=="Prostatectomy or radiation + hormone" & (plco_clean2$primary_tx=="Prostatectomy" | plco_clean2$primary_tx=="Radiation + hormone") ~ "Concordant",
+#plco_clean2$treatrec=="Prostatectomy or radiation + hormone" & plco_clean2$primary_tx!="Prostatectomy" & plco_clean2$primary_tx!="Radiation + hormone" ~ "Not aggressive enough"
+#)
+
+#plco_clean2$concordance <- factor(plco_clean2$concordance, levels=c("Not aggressive enough", "Concordant", "Too aggressive"), ordered=TRUE)
+#var_label(plco_clean2$concordance) <- "Treatment concordance with NCCN recs"
+#var_label(plco_clean2$primary_tx) <- "Primary treatment"
+
+plco_clean2$riskgroup2 <- case_when(
+  plco_clean2$riskgroup=="< 5" | plco_clean2$riskgroup=="5-10" ~ "< 10",
+  plco_clean2$riskgroup=="10+" ~ "10+"
 )
 
-plco_clean2$concordance <- factor(plco_clean2$concordance, levels=c("Not aggressive enough", "Concordant", "Too aggressive"), ordered=TRUE)
-var_label(plco_clean2$concordance) <- "Treatment concordance with NCCN recs"
-var_label(plco_clean2$primary_tx) <- "Primary treatment"
-
-table_example <- CreateTableOne(vars = c("age", "race2", "educ", "marital2", "smoker", "diabetic", "hypertension", "stroke", "weight", "nstage"), strata = "riskgroup", includeNA = TRUE, data = plco_clean2, argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
+table_example <- CreateTableOne(vars = c("age", "race2", "educ", "marital2", "smoker", "diabetic", "hypertension", "stroke", "weight", "nstage"), strata = "riskgroup2", includeNA = TRUE, data = plco_clean2, argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
 
 kable(print(table_example, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(4:6, 8:12, 14:16, 18:20, 25:28, 30:33))
 ```
-Table 4 cont.: Descriptions of life expectancy (grouped by risk of OCM at 10 years):
-```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
-table_example2 <- CreateTableOne(vars = c("tstage", "gleason", "dx_psa", "pc_risk_group", "primary_tx", "concordance", "mortstat"), strata = "riskgroup", includeNA = TRUE, data = plco_clean2, argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
 
-kable(print(table_example2, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(3:7, 9:13, 16:21, 23:28, 30:33, 35:37))
+\newpage
+
+Table 4, cont: Characteristics of 7,596 men in PLCO, grouped by years of life remaining up to 17 years.
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+table_example2 <- CreateTableOne(vars = c("tstage", "gleason", "dx_psa", "pc_risk_group", "primary_tx", "mortstat"), strata = "riskgroup2", includeNA = TRUE, data = plco_clean2, argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
+
+kable(print(table_example2, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(3:7, 9:13, 16:20, 22:27, 29:31))
 ```
 
-\elandscape
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 7: Distribution of treatment across PC and OC risk
+palette1 <- brewer.pal(9, name = "BuPu")
+palette2 <- brewer.pal(9, name = "GnBu")
+
+cust_palette <- c(palette2[5], palette1[6], palette2[7], palette1[9])
+trtplot <- ggplot(data = plco_clean2[plco_clean2$pc_risk_group!= "Regional" & !is.na(plco_clean2$pc_risk_group) & plco_clean2$primary_tx != "Other ablative treatment" & plco_clean2$primary_tx != "Hormone alone",], aes(x=pc_risk_group, y = riskgroup, color = primary_tx)) + geom_point(position="jitter" , shape=1) + theme_bw() + coord_flip() + ylab("OC Life Expectancy (Years)") + xlab("PC Mortality Risk") + scale_color_manual(name = "Treatment", values = palette1[c(3, 5, 7, 9)]) 
+
+#trtplot
+
+#ggsave("myplot.pdf", plot = trtplot, width = 12, height = 8)
+
+rm(list=c("trtplot"))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 6: Distribution of treatment across PC and OC risk:
+plco_clean2$pc_risk_group2 <- factor(plco_clean2$pc_risk_group, levels=c("Low", "Intermediate", "High", "Regional"), labels = c("PC Risk: Low", "PC Risk: Intermediate", "PC Risk: High", ordered = TRUE))
+
+newplot <- ggplot(data = plco_clean2[plco_clean2$pc_risk_group!= "Regional" & !is.na(plco_clean2$pc_risk_group2) & plco_clean2$primary_tx != "Other ablative treatment" & plco_clean2$primary_tx != "Hormone alone",], aes(x=riskgroup, y = primary_tx, color = pc_risk_group)) + geom_point(position="jitter", shape = 1) + theme_bw() + facet_wrap(~pc_risk_group2, ncol = 3) + xlab("OC Life Expectancy (Years)") + ylab("Primary Treatment") + theme(legend.position = "none", text=element_text(size=12)) + scale_color_manual(values = palette1[c(5, 7, 9)]) 
+
+#newplot
+
+#ggsave("myplot2.pdf", plot = newplot, width = 12, height = 8)
+
+rm(list=c("newplot"))
+```
+
+\newpage
+
+Figure 7: Proportion of patients receiving definitive treatment (prostatectomy, radiation, or radiation + hormone therapy) grouped by OC mortality prediction and prostate cancer risk group in sample of 6,881 men from PLCO.
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+plco_clean3 <- filter(plco_clean2, primary_tx != "Hormone alone", primary_tx != "Other ablative treatment")
+
+prop_dataset <- data.frame("pc_risk_group" = c("Low", "Intermediate", "High", "Low", "Intermediate", "High"), "riskgroup" = c("<10", "<10", "<10", "10+", "10+", "10+"), "prop" = c(length(which(plco_clean3$pc_risk_group=="Low" & plco_clean3$riskgroup!="10+" & plco_clean3$primary_tx!= "Active surveillance"))/ length(which(plco_clean3$pc_risk_group=="Low" & plco_clean3$riskgroup!="10+")), length(which(plco_clean3$pc_risk_group=="Intermediate" & plco_clean3$riskgroup!="10+" & plco_clean3$primary_tx!= "Active surveillance"))/ length(which(plco_clean3$pc_risk_group=="Intermediate" & plco_clean3$riskgroup!="10+")), length(which(plco_clean3$pc_risk_group=="High" & plco_clean3$riskgroup!="10+" & plco_clean3$primary_tx!= "Active surveillance"))/ length(which(plco_clean3$pc_risk_group=="High" & plco_clean3$riskgroup!="10+")), length(which(plco_clean3$pc_risk_group=="Low" & plco_clean3$riskgroup=="10+" & plco_clean3$primary_tx!= "Active surveillance"))/ length(which(plco_clean3$pc_risk_group=="Low" & plco_clean3$riskgroup=="10+")), length(which(plco_clean3$pc_risk_group=="Intermediate" & plco_clean3$riskgroup=="10+" & plco_clean3$primary_tx!= "Active surveillance"))/ length(which(plco_clean3$pc_risk_group=="Intermediate" & plco_clean3$riskgroup=="10+")), length(which(plco_clean3$pc_risk_group=="High" & plco_clean3$riskgroup=="10+" & plco_clean3$primary_tx!= "Active surveillance"))/ length(which(plco_clean3$pc_risk_group=="High" & plco_clean3$riskgroup=="10+"))))
+
+prop_dataset$pc_risk_group <- factor(prop_dataset$pc_risk_group, levels=c("Low", "Intermediate", "High"), ordered=TRUE)
+
+newplot2 <- ggplot(data = prop_dataset, aes(x=pc_risk_group, y = prop*100, color = riskgroup)) + geom_point() + geom_line(aes(group = riskgroup, color = riskgroup)) + theme_bw() + xlab("PC Risk Group") + ylab("Percent Receiving Definitive Treatment") + theme(legend.position = "bottom", text=element_text(size=12)) + scale_color_manual(name = "Life Expectancy (Years)", values = c("mediumpurple4", "gray74")) + scale_y_continuous(breaks = seq(0, 100, by=20)) + coord_cartesian(ylim = c(0, 100))
+
+newplot2
+
+#ggsave("myplot2.pdf", plot = newplot, width = 12, height = 8)
+
+rm(list=c("newplot2"))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 10: Probability of definitive treatment across PC and OC risk, regression-based:
+
+rm(list=c("calibration10_data", "calibration14_data", "calibration5_data", "cancer", "cox_40", "cuminc_10", "cuminc_14", "cuminc_5", "dat", "finegray_pc", "km_10_01", "km_10_03", "km_10_05", "km_10_07", "km_10_09", "km_14_01", "km_14_03", "km_14_05", "km_14_07", "km_14_09", "km_5_05", "km_5_07", "km_5_09", "km_predictions", "mydata", "mydata_nf", "plco", "plco_nf", "prop_dataset", "rforestpredict", "rmst", "rmst2", "causespecific_group", "cox40predict", "cox55predict", "cust_palette", "cutTime", "eve.cens", "eve.ocm", "eve.pcsm", "fg_covariates", "finegray_group", "finegray_predictions", "fstatus", "ftime", "group_10", "group_14", "group_5", "incs", "incs2", "palette2", "patient1", "patient2", "patient3", "patient4", "patient5", "predict_10", "predict_14", "predict_5", "times"))
+
+plco_clean3$deftreatment <- as.numeric(plco_clean3$primary_tx!= "Active surveillance")
+plco_clean3$deftreatment <- factor(plco_clean3$deftreatment, levels=c(0, 1), labels=c("Active surveillance", "Definitive treatment"))
+
+plco_clean3$pc_risk_group <- factor(plco_clean3$pc_risk_group, levels=c("Low", "Intermediate", "High", "Regional"), ordered=FALSE)
+
+mylogisticmodel <- glm(deftreatment ~ pc_risk_group + lifeexpectancy, data = plco_clean3[plco_clean3$pc_risk_group != "Regional",], family = "binomial")
+
+plotdat <- data.frame("pc_risk_group" = c(rep("Low", 76), rep("Intermediate", 76), rep("High", 76)), "lifeexpectancy" = rep(seq(0, 15, by=0.2), 3))
+
+plotdat2 <- predict(mylogisticmodel, newdata = plotdat)
+plotdat$prob <- exp(plotdat2)/(1+exp(plotdat2)) 
+
+logplot  <- ggplot(data = plotdat, aes(x=lifeexpectancy, y = prob)) + geom_line(aes(group = pc_risk_group, color = pc_risk_group)) + theme_bw() + xlab("OC Life Expectancy (Years)") + ylab("Probability of Receiving \nDefinitive Treatment") + theme(legend.position = "bottom", text=element_text(size=12)) + scale_color_manual(name = "PC Risk Group", values = palette1[c(9, 7, 5)]) 
+
+#logplot
+
+#ggsave("myplot2.pdf", plot = newplot, width = 12, height = 8)
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Table 5: Intensive focus on patients receiving incorrect treatment: low risk prostate cancer, high/intermediate OCM risk, aggressive treatment:
+
+mistreat1 <- which(plco_clean2$riskgroup!="Low" & plco_clean2$pc_risk_group=="Low")
+
+plco_clean2$correct_tx_1 <- ifelse(plco_clean2$primary_tx == "Active surveillance", "Correct", "Incorrect")
+
+table_mistreat1 <- CreateTableOne(vars = c("age", "race2", "educ", "marital2", "smoker", "diabetic", "hypertension", "stroke", "weight", "nstage", "tstage", "gleason", "dx_psa", "pc_risk_group", "primary_tx", "mortstat"), strata = "correct_tx_1", includeNA = TRUE, data = plco_clean2[mistreat1,], argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
+
+#kable(print(table_mistreat1, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(4:6, 8:12, 14:16, 18:20, 25:28, 30:33, 35:39, 41:45, 48:51, 53:58, 60:62))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Table 6: Intensive focus on patients receiving incorrect treatment: high risk prostate cancer, low OCM risk, weak treatment:
+#mistreat2 <- which(plco_clean2$riskgroup=="Low" & plco_clean2$pc_risk_group=="High")
+
+#plco_clean2$correct_tx_2 <- ifelse(plco_clean2$primary_tx == "Prostatectomy" | plco_clean2$primary_tx == "Radiation + hormone", "Correct", "Incorrect")
+
+#table_mistreat2 <- CreateTableOne(vars = c("age", "race2", "educ", "marital2", "smoker", "diabetic", "hypertension", "stroke", "weight", "nstage", "tstage", "gleason", "dx_psa", "pc_risk_group", "primary_tx", "mortstat"), strata = "correct_tx_2", includeNA = TRUE, data = plco_clean2[mistreat2,], argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
+
+#kable(print(table_mistreat2, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(4:6, 8:12, 14:16, 18:20, 25:28, 30:33, 35:39, 41:45, 48:51, 53:58, 60:62))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Table 7: Intensive focus on patients receiving incorrect treatment: intermediate risk prostate cancer, high OCM risk, aggressive treatment:
+
+#mistreat3 <- which(plco_clean2$riskgroup=="High" & plco_clean2$pc_risk_group=="Intermediate")
+                  
+#plco_clean2$correct_tx_3 <- ifelse(plco_clean2$primary_tx != "Prostatectomy" & plco_clean2$primary_tx != "Radiation + hormone" & plco_clean2$primary_tx!="Radiation alone", "Correct", "Incorrect")
+
+#table_mistreat3 <- CreateTableOne(vars = c("age", "race2", "educ", "marital2", "smoker", "diabetic", "hypertension", "stroke", "weight", "nstage", "tstage", "gleason", "dx_psa", "pc_risk_group", "primary_tx", "mortstat"), strata = "correct_tx_3", includeNA = TRUE, data = plco_clean2[mistreat3,], argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
+
+#kable(print(table_mistreat3, contDigits=1, varLabel = T, printToggle=FALSE), booktabs=T) %>% add_indent(c(4:6, 8:12, 14:16, 18:20, 25:28, 30:33, 35:39, 41:45, 48:51, 53:58, 60:62))
+```

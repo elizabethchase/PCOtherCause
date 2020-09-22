@@ -8,11 +8,17 @@
 #
 
 library(shiny)
+library(shinyBS)
+library(shinyjs)
 library(survival)
 library(ggplot2)
+library(dplyr)
+library(kableExtra)
+library(png)
+library(gridGraphics)
 
-load("ocm_model_final.RData")
-load("ocm_nhanes_data.RData")
+load("modobjects.RData")
+load("nhanes_data_clean.RData")
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -20,201 +26,81 @@ ui <- fluidPage(
   titlePanel("Other Cause Mortality Prediction"),
   mainPanel(
     tabsetPanel(
-      tabPanel("Description", 
-               br(),
-               includeMarkdown("ocmapp_methods.Rmd")),
-      tabPanel("Prostate",
-               br(),
-               fluidRow(
-                 h3("General Characteristics"),
-                 br(),
-                 column(4,
-                        numericInput("pc_age", 
-                                     "Age (years)", 
-                                     value = 65)),
-                 column(8)),
-               fluidRow(
-                 column(4,
-                        numericInput("pc_height", 
-                                     "Height (inches)", 
-                                     value = 70)),
-                 column(4,
-                        numericInput("pc_weight", 
-                                     "Weight (lbs)", 
-                                     value = 200)),
-                 column(4,
-                        checkboxGroupInput("pc_comorbidities", 
-                                           "Comorbidities", 
-                                           choices = list("Diabetes" = 1, 
-                                                          "Hypertension" = 2, 
-                                                          "Previous stroke" = 3),
-                                           selected = 1))
-               ),
-               fluidRow(
-                 column(4,
-                        selectInput("pc_education", "Educational Attainment", 
-                                    choices = list("Less than 9th grade" = 1, 
-                                                   "9th-11th grade" = 2, 
-                                                   "High school graduate" = 3,
-                                                   "Some college" = 4,
-                                                   "College graduate" = 5), selected = 1)),
-                 column(4,
-                        selectInput("pc_marital", 
-                                    "Marital Status", 
-                                    choices = list("Married" = 1, 
-                                                   "Widowed, Divorced, or Separated" = 2, 
-                                                   "Never Married" = 3),
-                                    selected = 1)),
-                 column(4,
-                        selectInput("pc_smoking", 
-                                    "Smoking Status", 
-                                    choices = list("Never smoker" = 1, 
-                                                   "Current smoker" = 2, 
-                                                   "Former smoker" = 3),
-                                    selected = 1))
-               ),
-               fluidRow(
-                 column(4,
-                        submitButton("Update"),
-                        br(),
-                        br()),
-                 column(8)
-               ),
-               fluidRow(
-                 br(),
-                 h3("Mortality Prediction"),
-                 textOutput("pc_text"),
-                 plotOutput("pc_plot")
+      tabPanel("Predictions",
+               sidebarLayout(
+                 sidebarPanel(
+                    numericInput("pc_age", 
+                                "Age (years)", 
+                                value = 65),
+                    numericInput("pc_height", 
+                              "Height (inches)", 
+                              value = 70),
+                    numericInput("pc_weight", 
+                            "Weight (lbs)", 
+                            value = 200),
+                    checkboxGroupInput("pc_comorbidities", 
+                         "Comorbidities", 
+                         choices = list("Diabetes" = 1, 
+                                        "Hypertension" = 2, 
+                                        "Previous stroke" = 3),
+                         selected = 1),
+                    selectInput("pc_education", "Educational Attainment", 
+                    choices = list("Less than 9th grade" = 1, 
+                               "9th-11th grade" = 2, 
+                               "High school graduate" = 3,
+                               "Some college" = 4,
+                               "College graduate" = 5), selected = 1),
+                    selectInput("pc_marital", 
+                            "Marital Status", 
+                          choices = list("Married" = 1, 
+                             "Widowed, Divorced, or Separated" = 2, 
+                             "Never Married" = 3),
+                      selected = 1),
+                    selectInput("pc_smoking", 
+                        "Smoking Status", 
+                        choices = list("Never smoker" = 1, 
+                           "Current smoker" = 2, 
+                           "Former smoker" = 3),
+                    selected = 1),
+                    submitButton("Update")
+                 ),
+                 mainPanel(
+                   br(),
+                   "Our staging model is for patients diagnosed with prostate cancer who have not 
+                    yet begun treatment. We predict the long-term chances of dying from other causes.",
+                   br(),
+                   br(),
+                   br(),
+                   tabsetPanel(
+                     tabPanel(
+                       "Summary",
+                       br(),
+                       textOutput("text1"), 
+                       br(),
+                       tableOutput("table1"),
+                       bsTooltip("table1", "This is a patient's probability of dying of other causes at 5 and 10 years.", 
+                                 "right", options = list(container = "body"))
+                     ),
+                     tabPanel(
+                       "Cumulative Incidence",
+                       plotOutput("plot1"),
+                       fluidRow(
+                         column(sliderInput(inputId = "years", label="Years", min = 0, max = 15, value = 10), width = 10),
+                         column(submitButton("Update"), width = 2)
+                       ),
+                       br(),
+                       textOutput("info1"),
+                       br(),
+                       br(),
+                       br()
+                     )
+                   )
+                 )
                )
-      ),
-      tabPanel("Lung",
+      ), 
+      tabPanel("More Information", 
                br(),
-               fluidRow(
-                 h3("General Characteristics"),
-                 br(),
-                 column(4,
-                        numericInput("lc_age", 
-                                     "Age (years)", 
-                                     value = 65)),
-                 column(8)),
-               fluidRow(
-                 column(4,
-                        numericInput("lc_height", 
-                                     "Height (inches)", 
-                                     value = 70)),
-                 column(4,
-                        numericInput("lc_weight", 
-                                     "Weight (lbs)", 
-                                     value = 200)),
-                 column(4,
-                        checkboxGroupInput("lc_comorbidities", 
-                                           "Comorbidities", 
-                                           choices = list("Diabetes" = 1, 
-                                                          "Hypertension" = 2, 
-                                                          "Previous stroke" = 3),
-                                           selected = 1))
-               ),
-               fluidRow(
-                 column(4,
-                        selectInput("lc_education", "Educational Attainment", 
-                                    choices = list("Less than 9th grade" = 1, 
-                                                   "9th-11th grade" = 2, 
-                                                   "High school graduate" = 3,
-                                                   "Some college" = 4,
-                                                   "College graduate" = 5), selected = 1)),
-                 column(4,
-                        selectInput("lc_marital", 
-                                    "Marital Status", 
-                                    choices = list("Married" = 1, 
-                                                   "Widowed, Divorced, or Separated" = 2, 
-                                                   "Never Married" = 3),
-                                    selected = 1)),
-                 column(4,
-                        selectInput("lc_smoking", 
-                                    "Smoking Status", 
-                                    choices = list("Never smoker" = 1, 
-                                                   "Current smoker" = 2, 
-                                                   "Former smoker" = 3),
-                                    selected = 1))
-               ),
-               fluidRow(
-                 column(4,
-                        submitButton("Update"),
-                        br(),
-                        br()),
-                 column(8)
-               ),
-               fluidRow(
-                 br(),
-                 h3("Mortality Prediction"),
-                 textOutput("lc_text"),
-                 plotOutput("lc_plot")
-               )
-      ),
-      tabPanel("Colorectal",
-               br(),
-               fluidRow(
-                 h3("General Characteristics"),
-                 br(),
-                 column(4,
-                        numericInput("cc_age", 
-                                     "Age (years)", 
-                                     value = 65)),
-                 column(8)),
-               fluidRow(
-                 column(4,
-                        numericInput("cc_height", 
-                                     "Height (inches)", 
-                                     value = 70)),
-                 column(4,
-                        numericInput("cc_weight", 
-                                     "Weight (lbs)", 
-                                     value = 200)),
-                 column(4,
-                        checkboxGroupInput("cc_comorbidities", 
-                                           "Comorbidities", 
-                                           choices = list("Diabetes" = 1, 
-                                                          "Hypertension" = 2, 
-                                                          "Previous stroke" = 3),
-                                           selected = 1))
-               ),
-               fluidRow(
-                 column(4,
-                        selectInput("cc_education", "Educational Attainment", 
-                                    choices = list("Less than 9th grade" = 1, 
-                                                   "9th-11th grade" = 2, 
-                                                   "High school graduate" = 3,
-                                                   "Some college" = 4,
-                                                   "College graduate" = 5), selected = 1)),
-                 column(4,
-                        selectInput("cc_marital", 
-                                    "Marital Status", 
-                                    choices = list("Married" = 1, 
-                                                   "Widowed, Divorced, or Separated" = 2, 
-                                                   "Never Married" = 3),
-                                    selected = 1)),
-                 column(4,
-                        selectInput("cc_smoking", 
-                                    "Smoking Status", 
-                                    choices = list("Never smoker" = 1, 
-                                                   "Current smoker" = 2, 
-                                                   "Former smoker" = 3),
-                                    selected = 1))
-               ),
-               fluidRow(
-                 column(4,
-                        submitButton("Update"),
-                        br(),
-                        br()),
-                 column(8)
-               ),
-               fluidRow(
-                 br(),
-                 h3("Mortality Prediction"),
-                 textOutput("cc_text"),
-                 plotOutput("cc_plot")
-               )
-      )
+               includeMarkdown("ocmapp_methods.Rmd"))
     )
   )
 )
@@ -225,9 +111,9 @@ server <- function(input, output) {
   #output$plot <- renderPlot({ggplot})
   #output$summary <- renderTable({kable})
   model <- reactive({
-    pc_dat <- data.frame("age_ctr" = input$pc_age - 69.5, "pc" = "Yes")
+    pc_dat <- data.frame("age_ctr_40" = input$pc_age - 60.34387, "pc" = "PC")
     pc_bmi <- (input$pc_weight*0.453592)/((input$pc_height*0.0254)^2)
-    pc_dat$pc <- factor(pc_dat$pc, levels=c("No", "Yes"))
+    pc_dat$pc <- factor(pc_dat$pc, levels=c("No PC", "PC"))
     pc_dat$underweight <- ifelse(pc_bmi < 18.5, "Yes", "No")
     pc_dat$overweight2 <- ifelse(pc_bmi >= 25 & pc_bmi < 40, "Yes", "No")
     pc_dat$obese2 <- ifelse(pc_bmi >= 40, "Yes", "No")
@@ -243,91 +129,47 @@ server <- function(input, output) {
     pc_dat$smoker <- ifelse(input$pc_smoking == 1, "Never", ifelse(input$pc_smoking== 2, "Current", "Former"))
     pc_dat$stroke <- ifelse(3 %in% input$pc_comorbidities, "Yes", "No")
     
-    pc_prediction <- survfit(cox40, newdata=pc_dat)
+    #mydata <- mydata[mydata$inmodel4 == 1, ]
+    pc_prediction <- survfit(cox_40, pc_dat)
     
-    pcdat <- data.frame("Time" = c(0, pc_prediction$time[-1]), "Risk" = c(0, pc_prediction$cumhaz[-1]))
+    incs <- pc_prediction$time[2:length(pc_prediction$time)] - pc_prediction$time[1:(length(pc_prediction$time)-1)]
+    rmst <- (incs %*% (pc_prediction$surv[-length(pc_prediction$surv)]))/12
     
-    lc_dat <- data.frame("age_ctr" = input$lc_age - 69.5, "pc" = "Yes")
-    lc_bmi <- (input$lc_weight*0.453592)/((input$lc_height*0.0254)^2)
-    lc_dat$pc <- factor(lc_dat$pc, levels=c("No", "Yes"))
-    lc_dat$underweight <- ifelse(lc_bmi < 18.5, "Yes", "No")
-    lc_dat$overweight2 <- ifelse(lc_bmi >= 25 & lc_bmi < 40, "Yes", "No")
-    lc_dat$obese2 <- ifelse(lc_bmi >= 40, "Yes", "No")
-    lc_dat$diabetic <- ifelse(1 %in% input$lc_comorbidities, "Yes", "No")
-    lc_dat$educ <- ifelse(input$lc_education == 1, "Less than 9th grade", 
-                          ifelse(input$lc_education == 2, "9th-11th grade",
-                                 ifelse(input$lc_education==3, "HS graduate",
-                                        ifelse(input$lc_education==4, "Some college", "College graduate"))))
-    lc_dat$hypertension <- ifelse(2 %in% input$lc_comorbidities, "Yes", "No")
-    lc_dat$marital2 <- ifelse(input$lc_marital == 1, "Married", 
-                              ifelse(input$lc_marital == 2, "Separated",
-                                     "Single"))
-    lc_dat$smoker <- ifelse(input$lc_smoking == 1, "Never", ifelse(input$lc_smoking== 2, "Current", "Former"))
-    lc_dat$stroke <- ifelse(3 %in% input$lc_comorbidities, "Yes", "No")
+    pcdat <- data.frame("Time" = pc_prediction$time, "Risk" = 1-pc_prediction$surv)
     
-    lc_prediction <- survfit(cox40, newdata=lc_dat)
+    riskten <- pcdat$Risk[which.min(ifelse((120-pcdat$Time) < 0, NA, (120-pcdat$Time)))]
+    riskfive <- pcdat$Risk[which.min(ifelse((60-pcdat$Time) < 0, NA, (60-pcdat$Time)))]
     
-    lcdat <- data.frame("Time" = c(0, lc_prediction$time[-1]), "Risk" = c(0, lc_prediction$cumhaz[-1]))
+    resultstab <- data.frame("Metric" = c("5-Year Mortality", "10-Year Mortality"), 
+                             "Prediction" = c(paste0(round(riskfive*100, digits = 0), "%"),
+                                              paste0(round(riskten*100, digits = 0), "%")))
     
-    cc_dat <- data.frame("age_ctr" = input$cc_age - 69.5, "pc" = "Yes")
-    cc_bmi <- (input$cc_weight*0.453592)/((input$cc_height*0.0254)^2)
-    cc_dat$pc <- factor(cc_dat$pc, levels=c("No", "Yes"))
-    cc_dat$underweight <- ifelse(cc_bmi < 18.5, "Yes", "No")
-    cc_dat$overweight2 <- ifelse(cc_bmi >= 25 & cc_bmi < 40, "Yes", "No")
-    cc_dat$obese2 <- ifelse(cc_bmi >= 40, "Yes", "No")
-    cc_dat$diabetic <- ifelse(1 %in% input$cc_comorbidities, "Yes", "No")
-    cc_dat$educ <- ifelse(input$cc_education == 1, "Less than 9th grade", 
-                          ifelse(input$cc_education == 2, "9th-11th grade",
-                                 ifelse(input$cc_education==3, "HS graduate",
-                                        ifelse(input$cc_education==4, "Some college", "College graduate"))))
-    cc_dat$hypertension <- ifelse(2 %in% input$cc_comorbidities, "Yes", "No")
-    cc_dat$marital2 <- ifelse(input$cc_marital == 1, "Married", 
-                              ifelse(input$cc_marital == 2, "Separated",
-                                     "Single"))
-    cc_dat$smoker <- ifelse(input$cc_smoking == 1, "Never", ifelse(input$cc_smoking== 2, "Current", "Former"))
-    cc_dat$stroke <- ifelse(3 %in% input$cc_comorbidities, "Yes", "No")
+    mypred <- round(pcdat$Risk[which.min(ifelse((input$years*12-pcdat$Time) < 0, NA, (input$years*12-pcdat$Time)))]*100, digits=0)
     
-    cc_prediction <- survfit(cox40, newdata=cc_dat)
-    
-    ccdat <- data.frame("Time" = c(0, cc_prediction$time[-1]), "Risk" = c(0, cc_prediction$cumhaz[-1]))
-    
-    list(pcdat = pcdat, lcdat = lcdat, ccdat = ccdat)
+    list(alldat = pcdat, riskten = riskten, resultstab = resultstab, mypred = mypred, rmst = rmst)
+  
   })
   
-  output$pc_plot <- renderPlot({
-    ggplot() + geom_step(data = model()$pcdat, aes(x = Time, y = Risk*100), size = 1.5, 
-                         direction = "hv", alpha = 1) +
-      scale_x_continuous("Years", limits = c(0, 192), breaks = seq(0, 192, by=48), labels = c("0", "4", "8", "12", "16")) + 
-      scale_y_continuous("Risk (%)", breaks = c(0, 25, 50, 75, 100)) + coord_cartesian(ylim=c(0, 100)) + theme_bw()
-  })
-  output$pc_text <- renderText({
-    pc_ten <- model()$pcdat$Risk[model()$pcdat$Time==120]
-    
-    paste0("At ten years, this patient's cumulative hazard of dying of other causes is ", round(pc_ten*100, digits=2), "%.")
+  output$text1 <- renderText({
+    paste0("This patient is predicted to live ", round(model()$rmst, digits = 0), " of the next 16.75 years. Of 100 men like this patient, ", 
+           round(model()$riskten*100, digits = 0), " are expected to die of other causes within the next 10 years.")
   })
   
-  output$lc_plot <- renderPlot({
-    ggplot() + geom_step(data = model()$lcdat, aes(x = Time, y = Risk*100), size = 1.5, 
+  output$table1 <- function(){kable(model()$resultstab) %>% column_spec(column = c(1:2), width = "4cm") %>%
+      kable_styling()}
+  
+  output$plot1 <- renderPlot({
+    ggplot() + geom_step(data = model()$alldat, aes(x = Time, y = Risk*100), size = 1.5,
                          direction = "hv", alpha = 1) +
-      scale_x_continuous("Years", limits = c(0, 192), breaks = seq(0, 192, by=48), labels = c("0", "4", "8", "12", "16")) + 
-      scale_y_continuous("Risk (%)", breaks = c(0, 25, 50, 75, 100)) + coord_cartesian(ylim=c(0, 100)) + theme_bw()
-  })
-  output$lc_text <- renderText({
-    lc_ten <- model()$lcdat$Risk[model()$lcdat$Time==120]
-    
-    paste0("At ten years, this patient's cumulative hazard of dying of other causes is ", round(lc_ten*100, digits=2), "%.")
+      scale_x_continuous("Years", limits = c(0, 168), breaks = seq(0, 168, by=48), labels = c("0", "4", "8", "12")) +
+      scale_y_continuous("Risk (%)", breaks = c(0, 25, 50, 75, 100)) + coord_cartesian(ylim=c(0, 100)) +
+      theme_bw() + 
+      geom_hline(yintercept = model()$mypred) + 
+      geom_vline(xintercept = input$years*12)
   })
   
-  output$cc_plot <- renderPlot({
-    ggplot() + geom_step(data = model()$ccdat, aes(x = Time, y = Risk*100), size = 1.5, 
-                         direction = "hv", alpha = 1) +
-      scale_x_continuous("Years", limits = c(0, 192), breaks = seq(0, 192, by=48), labels = c("0", "4", "8", "12", "16")) + 
-      scale_y_continuous("Risk (%)", breaks = c(0, 25, 50, 75, 100)) + coord_cartesian(ylim=c(0, 100)) + theme_bw()
-  })
-  output$cc_text <- renderText({
-    cc_ten <- model()$ccdat$Risk[model()$ccdat$Time==120]
-    
-    paste0("At ten years, this patient's cumulative hazard of dying of other causes is ", round(cc_ten*100, digits=2), "%.")
+  output$info1 <- renderText({
+    paste0("Estimated probability of dying of other causes within ", round(input$years, digits = 2), " years: ", model()$mypred, "%.")
   })
 }
 
