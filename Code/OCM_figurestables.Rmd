@@ -401,7 +401,7 @@ rownames(subperf) <- NULL
 kable(subperf, col.names = c("Model", "5 Years", "10 Years", "14 Years")) %>%
 add_header_above(c(" ", "AUC" = 3), escape=FALSE) %>% column_spec(column = 1, width = "3cm") %>% column_spec(column = 2:4, width = "1.75cm")
 
-rm(list=c("subperf", "rforestroc", "cox55roc", "cox40roc", "rforest_40", "cox_55", "cox55_plco", "cox40_plco", "forest_plco", "ssa_roc", "nvss_roc"))
+rm(list=c("subperf", "rforestroc", "cox55roc", "cox40roc", "cox55_plco", "cox40_plco", "forest_plco", "ssa_roc", "nvss_roc"))
 ```
 
 \newpage
@@ -535,7 +535,7 @@ calibration10_data <- data.frame("Year" = rep("10 Years", 5),
                                           km_10_07$upper[km_10_07$time==120], 
                                           km_10_09$upper[km_10_09$time==120]))
 
-calibration14_data <- data.frame("Year" = rep("10 Years", 5), 
+calibration14_data <- data.frame("Year" = rep("14 Years", 5), 
                                  "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
                                  "Est" = c(km_14_01$surv[km_14_01$time==164], 
                                            km_14_03$surv[km_14_03$time==168], 
@@ -553,29 +553,19 @@ calibration14_data <- data.frame("Year" = rep("10 Years", 5),
                                           km_14_07$upper[km_14_07$time==168], 
                                           km_14_09$upper[km_14_09$time==168]))
 
-myplot <- ggplot() + geom_line(data = calibration5_data, aes(x=Group, y=Est), 
-                               color = "darkblue") + 
-  geom_errorbar(data = calibration5_data, aes(x = Group, ymin = Lower, 
-                                              ymax = Upper, width = 0.05), 
-                color = "darkblue") + geom_line(data = calibration10_data, 
-                                                aes(x=Group, y=Est), 
-                                                color = "mediumpurple4") + 
-  geom_errorbar(data = calibration10_data, aes(x = Group, ymin = Lower, 
-                                               ymax = Upper, width = 0.05), 
-                color = "mediumpurple4") + geom_line(data = calibration14_data, 
-                                                     aes(x=Group, y=Est), 
-                                                     color = "gray74") + 
-  geom_errorbar(data = calibration14_data, aes(x = Group, ymin = Lower, 
-                                               ymax = Upper), color = "gray74", 
-                width = 0.05) + scale_x_continuous(name = "Predicted OCM Survival", 
-                                                   limits = c(0, 1), 
+calibrationdat_total <- rbind(calibration5_data, calibration10_data, calibration14_data)
+
+myplot <- ggplot() + geom_line(data = calibrationdat_total, aes(x=Group, y=Est, 
+                                                                group = Year, 
+                                                                color = Year)) + 
+  geom_errorbar(data = calibrationdat_total, aes(x = Group, ymin = Lower, 
+                                              ymax = Upper, width = 0.05, group = Year, 
+                                              color = Year)) + 
+  scale_x_continuous(name = "Predicted OCM Survival",limits = c(0, 1), 
                                                    breaks = seq(0, 1, by=0.2)) + 
   scale_y_continuous(name = "Observed OCM Survival", limits = c(0, 1), 
                      breaks = seq(0, 1.2, by=0.2)) + theme_bw() + 
-  geom_abline(slope = 1, intercept = 0)  + 
-  labs(caption = "Black line: perfect calibration. Blue line: calibration at 
-       5 years. Purple line: calibration at 10 years. Gray line: calibration 
-       at 14 years.") #+ theme(text=element_text(size=18))
+  geom_abline(slope = 1, intercept = 0) + scale_color_manual(values = c("darkblue", "mediumpurple4","gray74"), name = "Time") + theme(legend.position = "bottom")
 
 myplot
 
@@ -614,6 +604,58 @@ adj_plot <- ggplot(cox_plotdata, aes(fct_rev(Variable), log(Effect))) + geom_poi
 #adj_plot
 
 rm(list=c("cox_plotdata", "adj_plot"))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 3: Forest plot of Cox model ages 55+
+table_model <- summary(cox_55)$conf.int
+table_model[1, 1] <- exp(10*log(table_model[1, 1]))
+table_model[1, 3] <- exp(10*log(table_model[1, 3]))
+table_model[1, 4] <- exp(10*log(table_model[1, 4]))
+
+cox_plotdata <- data.frame("Variable" = c("Age (per 10 years)", "White Race (ref: Black Race)", "Other Race (ref: Black Race)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Separated (ref: married)", "Single (ref: married)", "Emphysema (ref: no emphysema)", "Diabetic (ref: no diabetes)", "Stroke (ref: no stroke)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Underweight, BMI <18.5 (ref: BMI 18.5-25)", "Overweight, BMI 25-40 (ref: BMI 18.5-25)", "Obese, BMI 40+ (ref: BMI 18.5-25)", "Prostate cancer (ref: no prostate cancer)"), "Effect" = table_model[1:18,1], "Lower" = table_model[1:18,3], "Upper" = table_model[1:18,4], "Label" = paste(round(table_model[1:18,1], digits=2), " (", round(table_model[1:18,3], digits=2), ",", round(table_model[1:18,4], digits=2), ")", sep=""))
+
+
+cox_plotdata$Variable <- factor(cox_plotdata$Variable, levels= c("Age (per 10 years)", "White Race (ref: Black Race)", "Other Race (ref: Black Race)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Separated (ref: married)", "Single (ref: married)", "Emphysema (ref: no emphysema)", "Diabetic (ref: no diabetes)", "Stroke (ref: no stroke)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Underweight, BMI <18.5 (ref: BMI 18.5-25)", "Overweight, BMI 25-40 (ref: BMI 18.5-25)", "Obese, BMI 40+ (ref: BMI 18.5-25)", "Prostate cancer (ref: no prostate cancer)"), ordered=TRUE)
+
+adj_plot <- ggplot(cox_plotdata, aes(fct_rev(Variable), log(Effect))) + geom_point() + geom_errorbar(aes(ymin=log(Lower), ymax=log(Upper), width=0.1)) + coord_flip(ylim=c(-1.0, 5.5)) + labs(y = "Hazard Ratio and 95% CI", x = "", caption=TeX('Protective $\\leftarrow \\rightarrow$ Harmful' )) + geom_hline(yintercept=0, linetype="dashed", color = "black") + theme(panel.background = element_rect(fill="white"), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), legend.position="bottom", text=element_text(size=14), plot.caption = element_text(size=14, hjust = 0)) + geom_rect(fill="white", ymin=5.5, ymax=Inf, xmin=-Inf, xmax=Inf) + annotate(geom = 'text', label = cox_plotdata$Label, x = cox_plotdata$Variable, y = 1.7, hjust = 0, vjust = 0.5) + scale_y_continuous(breaks=log(c(0.25, 0.5, 1, 2, 4)), labels=c("0.25", "0.5", "1.0", "2.0", "4.0")) 
+ 
+#adj_plot
+
+rm(list=c("cox_plotdata", "adj_plot", "cox_55"))
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 3: Importance plot of random forest model:
+
+#varlist <- vimp(rforest_40)
+
+#rforest_plot <- data.frame("Variable" = c("Age", "Arthritis", "Chronic Bronchitis", 
+#"Diabetes", "Education", "Emphysema", "Hypertension", "Single", "Divorced/Separated/Widowed", 
+#"MI", "Underweight", "Overweight", "Obese", "Liver Disease", "Black", "Other Race", 
+#"Smoking Status", "Stroke", "Prostate Cancer"), "Importance" = varlist$importance, 
+#"Label" = paste(round(varlist$importance, digits=3)))
+
+#rforest_plot$Variable <- factor(rforest_plot$Variable, 
+#levels=rforest_plot$Variable[order(rforest_plot$Importance)], ordered = TRUE)
+#rforest_plot$Label2 <- case_when(
+#rforest_plot$Label=="0" ~ "0.000", 
+#rforest_plot$Label!= "0" ~ as.character(rforest_plot$Label))
+
+#b <- ggplot(rforest_plot, aes(x = Variable, y= Importance)) + 
+#geom_bar(stat="identity", width=.5, position = "dodge") + 
+#coord_flip(ylim=c(0, 0.25)) + xlab('') + ylab('Importance') + 
+#theme(panel.background = element_rect(fill="white"), 
+#panel.grid.major = element_line(color="black", size=0.2), 
+#panel.grid.minor=element_line(color="black", size=0.2), 
+#text=element_text(size=14)) + 
+#geom_rect(fill="white", ymin=0.2, ymax=Inf, xmin=-Inf, xmax=Inf) + 
+#annotate(geom = 'text', label = rforest_plot$Label2, x = rforest_plot$Variable, 
+#y = 0.205, hjust = 0, vjust = 0.5) + scale_y_continuous(breaks=c(0.0, 0.05, 0.1, 0.15, 0.2)) 
+
+#b
+
+rm(list=c("varlist", "plco_plot", "b", "rforest_40"))
 ```
 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
@@ -749,8 +791,9 @@ rm(list=c("calibration10_data", "calibration14_data", "calibration5_data", "cumi
 
 \newpage
 
-Figure 6: Sample incidence curves predicted using our OC mortality model for 5 different patients taken from our PLCO validation sample. 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 6: Sample incidence curves predicted using our OC mortality model for 5 different patients taken from our PLCO validation sample. 
+
 km_predictions <- survfit(cox_40, plco_clean)
 
 predict_10 <- km_predictions$surv[km_predictions$time==120,]
@@ -768,20 +811,49 @@ example_dat$Patient <- factor(example_dat$Patient, levels=c(1:5), labels=c("Pati
 
 curveplot <- ggplot() + geom_step(data = example_dat, aes(x = Time, y = Risk*100, group = fct_rev(Patient), color = fct_rev(Patient)), size = 1.5, direction = "hv", alpha = 1) + scale_x_continuous("Years", limits = c(0, 168), breaks = seq(0, 168, by=48), labels = c("0", "4", "8", "12")) + scale_y_continuous("Survival (%)", breaks = c(0, 25, 50, 75, 100)) + coord_cartesian(ylim=c(0, 100)) + theme_bw() + guides(color=guide_legend(title="Patient"))
 
-curveplot
+#curveplot
 
 rm(list=c("curveplot", "example_dat", "patient1", "patient2", "patient3", "patient4", "patient5"))
+
+#atient 1 (very high risk): age 85, no comorbidities, some college, married, current smoker, BMI 25-40
+
+#Patient 2 (high risk): age 82, hypertensive, college graduate, married, former smoker, BMI 18.5-25
+
+#Patient 3 (moderate risk): age 71, hypertensive, high school graduate, married, current smoker, BMI 18.5-25
+
+#Patient 4 (low risk): age 66, no comorbidities, college graduate, separated, current smoker, BMI 18.5-25
+
+#Patient 5 (very low risk): age 62, hypertensive, some college, married, former smoker, BMI 25-40
 ```
 
-Patient 1 (very high risk): age 85, no comorbidities, some college, married, current smoker, BMI 25-40
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 7: Distribution of life expectancy across age group
 
-Patient 2 (high risk): age 82, hypertensive, college graduate, married, former smoker, BMI 18.5-25
+myfunc <- function(x){
+  inds <- which(x-0.5 <= 0)
+  if (identical(inds, integer(0))){
+    mytime <- 202
+  } else{
+    mytime <- min(inds)
+  }
+  return(mytime)
+}
+medsurv <- apply(X = km_predictions$surv, MARGIN = 2, FUN = myfunc)
+medsurv2 <- data.frame(medsurv)
 
-Patient 3 (moderate risk): age 71, hypertensive, high school graduate, married, current smoker, BMI 18.5-25
+plco_clean$age_grp <- case_when(
+  plco_clean$age < 65 ~ "55-64",
+  plco_clean$age >= 65 & plco_clean$age < 75 ~ "65-74",
+  plco_clean$age >= 75 & plco_clean$age < 85 ~ "75-84",
+  plco_clean$age >= 85 ~ "85+"
+)
 
-Patient 4 (low risk): age 66, no comorbidities, college graduate, separated, current smoker, BMI 18.5-25
+plco_clean$medsurv <- medsurv2$medsurv
 
-Patient 5 (very low risk): age 62, hypertensive, some college, married, former smoker, BMI 25-40
+myplot <- ggplot(data=plco_clean) + geom_density(aes(x=medsurv, color = age_grp, fill = age_grp), alpha = 0.3) + scale_x_continuous(breaks = c(48, 72, 96, 120, 144, 168, 192, 216), labels=c("4", "6", "8", "10", "12", "14", "16", "18")) + xlab("Median Survival (Years)") + ylab("Density") + theme_bw() + guides(color=guide_legend(title="Age"), fill = guide_legend(title = "Age"))
+
+#myplot
+```
 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #Figure 6: Treatment concordance with OCM predictions:

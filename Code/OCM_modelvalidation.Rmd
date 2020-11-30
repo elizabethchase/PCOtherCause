@@ -40,6 +40,7 @@ library(timeROC)
 library(cmprsk)
 library(rms)
 library(polspline)
+library(Hmisc)
 
 #This is the PLCO dataset that we cannot share:
 prostatedata <-
@@ -274,13 +275,13 @@ plco_nf <- na.omit(plco_nf)
 
 ## Validation
 
-Now we validate each model. First, we look at C-index:
+Now we validate each model. First, we look at C-index for the cause-specific formulation:
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
 load("cox_55.RData")
 load("cox_40.RData")
 load("rforest_40.RData")
 
-times <- seq(6, 168, by=6)
+times <- seq(6, 192, by=6)
 plco_clean$age_ctr_40 <- plco_clean$age - 60.34387 #scaling the age 40+ cohort
 plco_clean$age_ctr_55 <- plco_clean$age - 68.35788 #scaling the age 55+ cohort
 
@@ -761,6 +762,357 @@ comparison_plot
 comparison_plot2 <- ggplot(data=expectancy_dat, aes(x = NVSS, y = Cox_40, color = factor(Outcome))) + geom_point() + scale_color_manual("Outcome", values = c("mediumpurple4", "gray74"), labels=c("Censored", "Died of OCM")) + coord_cartesian(xlim = c(3, 17), ylim = c(3, 17)) + xlab("NVSS Predicted Life Expectancy (up to 17 years)") + ylab("Cox Model Predicted Life Expectancy (up to 17 years)") + geom_abline(slope = 1, intercept = 0) + theme_bw()
 
 comparison_plot2
+```
+
+## Performance Assessment in Presence of Competing Risks
+
+Now we redo all of the above analyses, but accounting for the competing risks using the lengthened survival time:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+plco_clean2 <- plco_clean
+plco_nf2 <- plco_nf
+
+plco_clean2$permth_exm <- case_when(
+  plco_clean$mortstat2==0 | plco_clean$mortstat2==1 ~ plco_clean$permth_exm,
+  plco_clean$mortstat2==2 ~ 1000
+)
+
+plco_nf2$permth_exm <- case_when(
+  plco_nf$mortstat2==0 | plco_nf$mortstat2==1 ~ plco_nf$permth_exm,
+  plco_nf$mortstat2==2 ~ 1000
+)
+
+obs_surv <- Surv(plco_clean2$permth_exm, plco_clean2$mortstat)
+rf_predictor <- predict(rforest_40, plco_nf2)
+cox_40_predictor <- survfit(cox_40, plco_clean2)
+cox_55_predictor <- survfit(cox_55, plco_clean2)
+
+cox_40_5 <- rcorr.cens(cox_40_predictor$surv[cox_40_predictor$time==60,], obs_surv)
+cox_40_10 <- rcorr.cens(cox_40_predictor$surv[cox_40_predictor$time==120,], obs_surv)
+cox_40_14 <- rcorr.cens(cox_40_predictor$surv[cox_40_predictor$time==168,], obs_surv)
+
+cox_55_5 <- rcorr.cens(cox_55_predictor$surv[cox_55_predictor$time==60,], obs_surv)
+cox_55_10 <- rcorr.cens(cox_55_predictor$surv[cox_55_predictor$time==120,], obs_surv)
+cox_55_14 <- rcorr.cens(cox_55_predictor$surv[cox_55_predictor$time==168,], obs_surv)
+
+rforest_40_5 <- rcorr.cens(rf_predictor$survival[, rf_predictor$time.interest==60], obs_surv)
+rforest_40_10 <- rcorr.cens(rf_predictor$survival[, rf_predictor$time.interest==120], obs_surv)
+rforest_40_14 <- rcorr.cens(rf_predictor$survival[, rf_predictor$time.interest==168], obs_surv)
+
+cox55_plco <- pec::cindex(object=cox_55, Surv(permth_exm, mortstat) ~ age_ctr_55 + 
+                            race2 + educ + marital2 + emphysema + diabetic + 
+                            stroke + smoker + underweight + overweight2 + obese2 + 
+                            pc + age_ctr_55*diabetic + age_ctr_55*educ + 
+                            age_ctr_55*marital2 + race2*educ, data = plco_clean2, 
+                          eval.times = times)
+
+cox40_plco <- pec::cindex(object=cox_40, formula = Surv(permth_exm, mortstat) ~ 
+                            age_ctr_40 + diabetic + educ + hypertension + marital2 + 
+                            underweight + overweight2 + obese2 + smoker + stroke + 
+                            age_ctr_40*diabetic + age_ctr_40*educ + 
+                            age_ctr_40*hypertension + age_ctr_40*stroke + pc, 
+                          data=plco_clean2, eval.times = times)
+
+forest_plco <- pec::cindex(object=rforest_40, formula = Surv(permth_exm, mortstat) ~ 
+                             age + arthritis + bronch + diabetic + educ + 
+                             emphysema + hypertension + single + sep + mi_chd + 
+                             underweight + overweight_ex + obese + liver + black + 
+                             other + smoker + stroke + pc, data=plco_nf2, eval.times = times)
+
+valid_perf <- data.frame("Time" = rep(seq(6, 168, by=6), 3), 
+                         "Model" = c(rep("Cox 55", 28), rep("Cox 40", 28), 
+                                     rep("Random Forest", 28)), 
+                         "C" = c(cox55_plco$AppCindex$coxph, cox40_plco$AppCindex$coxph,
+                                 forest_plco$AppCindex$rfsrc))
+
+performance_plot <- ggplot(data=valid_perf, aes(x=Time, y=C)) + geom_point(size=0.1) + 
+  geom_line(data=valid_perf, aes(group=Model, color=Model)) + xlab("Time (months)") + 
+  ylab("IPCW C-index in PLCO, Competing Risks")
+
+performance_plot
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+subperf <- data.frame("Model" = c("Cox 55", "Cox 40", "Random Forest"), 
+                      "Year5" = round(c(cox55_plco$AppCindex$coxph[10], 
+                                        cox40_plco$AppCindex$coxph[10], 
+                                        forest_plco$AppCindex$rfsrc[10]), digits=3), 
+                      "Year10" = round(c(cox55_plco$AppCindex$coxph[20], 
+                                         cox40_plco$AppCindex$coxph[20], 
+                                         forest_plco$AppCindex$rfsrc[20]), digits=3), 
+                      "Year14" = round(c(cox55_plco$AppCindex$coxph[28], 
+                                         cox40_plco$AppCindex$coxph[28], 
+                                         forest_plco$AppCindex$rfsrc[28]), digits=3))
+
+kable(subperf, caption = "IPCW C-index in PLCO, Competing Risks")
+
+subperf2 <- data.frame("Model" = c("Cox 55", "Cox 40", "Random Forest"), 
+                      "Year5" = round(c(cox_55_5[1], 
+                                        cox_40_5[1],
+                                        rforest_40_5[1]), digits=3), 
+                      "Year10" = round(c(cox_55_10[1], 
+                                         cox_40_10[1],
+                                         rforest_40_10[1]), digits=3), 
+                      "Year14" = round(c(cox_55_14[1], 
+                                         cox_40_14[1],
+                                         rforest_40_14[1]), digits=3))
+
+kable(subperf2, caption = "No IPCW C-index in PLCO, Competing Risks")
+```
+
+Based on C-index, our strongest performing model is the Cox model fit to men ages 40+. Now we look at time-dependent AUC:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+cox40predict <-
+  predict(object = cox_40,
+          newdata = plco_clean2,
+          type = "lp")
+cox55predict <-
+  predict(object = cox_55,
+          newdata = plco_clean2,
+          type = "lp")
+rforestpredict <-
+  predict(object=rforest_40,
+          newdata = plco_nf2)
+
+cox40roc <-
+  timeROC(
+    T = plco_clean2$permth_exm,
+    delta = plco_clean2$mortstat,
+    marker = cox40predict,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+cox55roc <-
+  timeROC(
+    T = plco_clean2$permth_exm,
+    delta = plco_clean2$mortstat,
+    marker = cox55predict,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+rforestroc <-
+  timeROC(
+    T = plco_nf2$permth_exm,
+    delta = plco_nf2$mortstat,
+    marker = rforestpredict$predicted,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+aucdat <-
+  data.frame("Time" = rep(seq(6, 168, by = 6), 3), 
+             "Model" = c(rep("Cox 55", 28), rep("Cox 40", 28), 
+                                     rep("Random Forest", 28)),
+             "AUC" = c(cox55roc$AUC[-1], cox40roc$AUC[-1],
+                       rforestroc$AUC[-1]))
+
+aucplot <-
+  ggplot(data = aucdat, aes(x = Time, y = AUC, group = Model, color=Model)) + 
+  geom_line() + xlab("Time (months)") + ylab("Time-dependent AUC in PLCO, Competing Risks")
+
+aucplot
+```
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+auc_table <- data.frame("Model" = c("Cox 55", "Cox 40", "Random Forest"), 
+                      "Year5" = round(c(cox55roc$AUC[11], 
+                                        cox40roc$AUC[11], 
+                                        rforestroc$AUC[11]), digits=3), 
+                      "Year10" = round(c(cox55roc$AUC[21], 
+                                         cox40roc$AUC[21], 
+                                         rforestroc$AUC[21]), digits=3), 
+                      "Year14" = round(c(cox55roc$AUC[29], 
+                                         cox40roc$AUC[29], 
+                                         rforestroc$AUC[29]), digits=3))
+
+kable(auc_table, caption="Time-Dependent AUC in PLCO, Competing Risks")
+```
+
+Based on time-dependent AUC, the Cox model fit to men ages 40+ is still the strongest performing model. We will now focus our attention on the Cox ages 40+ model for the rest of our model validation/performance assessment.
+
+We look at C-index and time-dependent AUC stratified by treatment group:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+cox40_prostatectomy <- pec::cindex(object=cox_40, formula = Surv(permth_exm, mortstat) ~ 
+                                     age_ctr_40 + diabetic + educ + hypertension + 
+                                     marital2 + underweight + overweight2 + obese2 + 
+                                     smoker + stroke + age_ctr_40*diabetic + 
+                                     age_ctr_40*educ + age_ctr_40*hypertension + 
+                                     age_ctr_40*stroke + pc,
+                                   data=plco_clean2[plco_clean2$primary_tx=="Prostatectomy",], 
+                                   eval.times = times)
+
+cox40_radiation <- pec::cindex(object=cox_40, formula = Surv(permth_exm, mortstat) ~ 
+                                 age_ctr_40 + diabetic + educ + hypertension + 
+                                 marital2 + underweight + overweight2 + obese2 + 
+                                 smoker + stroke + age_ctr_40*diabetic + 
+                                 age_ctr_40*educ + age_ctr_40*hypertension + 
+                                 age_ctr_40*stroke + pc, 
+                               data=plco_clean2[plco_clean2$primary_tx=="Radiation alone",], 
+                               eval.times = times)
+
+cox40_rtadt <- pec::cindex(object=cox_40, formula = Surv(permth_exm, mortstat) ~ 
+                             age_ctr_40 + diabetic + educ + hypertension + 
+                             marital2 + underweight + overweight2 + obese2 + 
+                             smoker + stroke + age_ctr_40*diabetic + 
+                             age_ctr_40*educ + age_ctr_40*hypertension + 
+                             age_ctr_40*stroke + pc, 
+                           data=plco_clean2[plco_clean2$primary_tx=="Radiation + hormone",], 
+                           eval.times = times)
+
+valid_perf_trt <- data.frame("Time" = rep(seq(6, 168, by=6), 3), 
+                             "Treatment" = c(rep("Prostatectomy", 28), 
+                                             rep("Radiation alone", 28), 
+                                             rep("Radiation + hormone", 28)), 
+                             "C" = c(cox40_prostatectomy$AppCindex$coxph, 
+                                     cox40_radiation$AppCindex$coxph, 
+                                     cox40_rtadt$AppCindex$coxph))
+
+performance_plot_trt <- ggplot(data=valid_perf_trt, aes(x=Time, y=C)) + 
+  geom_point(size=0.1) + geom_line(data=valid_perf_trt, aes(group=Treatment, 
+                                                            color=Treatment)) + 
+  xlab("Time (months)") + ylab("IPCW C-index in PLCO, Competing Risks")
+
+performance_plot_trt
+
+subperf_trt <- data.frame("Treatment" = c("Prostatectomy", "Radiation alone", 
+                                          "Radiation + hormone"), 
+                          "Year5" = round(c(cox40_prostatectomy$AppCindex$coxph[10],
+                                            cox40_radiation$AppCindex$coxph[10], 
+                                            cox40_rtadt$AppCindex$coxph[10]), digits=3), 
+                          "Year10" = round(c(cox40_prostatectomy$AppCindex$coxph[20],
+                                             cox40_radiation$AppCindex$coxph[20],
+                                             cox40_rtadt$AppCindex$coxph[20]), digits=3), 
+                          "Year14" = round(c(cox40_prostatectomy$AppCindex$coxph[28],
+                                             cox40_radiation$AppCindex$coxph[28],
+                                             cox40_rtadt$AppCindex$coxph[28]), digits=3))
+
+kable(subperf_trt, caption = "PLCO Time-Dependent C-index, by Treatment, Competing Risks")
+
+cox40predict_prostatectomy <- predict(object=cox_40, newdata =
+                                        plco_clean2[plco_clean2$primary_tx=="Prostatectomy",],
+                                      type="lp")
+
+cox40predict_radiation <- predict(object=cox_40, newdata = 
+                                    plco_clean2[plco_clean2$primary_tx=="Radiation alone",], 
+                                  type="lp")
+
+cox40predict_rtadt <- predict(object=cox_40, newdata = 
+                                plco_clean2[plco_clean2$primary_tx=="Radiation + hormone",], 
+                              type="lp")
+
+prostatectomy_roc <- timeROC(T = plco_clean2$permth_exm[plco_clean2$primary_tx=="Prostatectomy"], 
+                             delta = plco_clean2$mortstat[plco_clean2$primary_tx=="Prostatectomy"], 
+                             marker = cox40predict_prostatectomy, cause = 1, 
+                             weighting="marginal", times = seq(0, 168, by=6))
+
+radiation_roc <- timeROC(T = plco_clean2$permth_exm[plco_clean2$primary_tx=="Radiation alone"], 
+                         delta = plco_clean2$mortstat[plco_clean2$primary_tx=="Radiation alone"], 
+                         marker = cox40predict_radiation, cause = 1, 
+                         weighting="marginal", times = seq(0, 168, by=6))
+
+rtadt_roc <- timeROC(T = plco_clean2$permth_exm[plco_clean2$primary_tx=="Radiation + hormone"], 
+                     delta = plco_clean2$mortstat[plco_clean2$primary_tx=="Radiation + hormone"], 
+                     marker = cox40predict_rtadt, cause = 1, weighting="marginal", 
+                     times = seq(0, 168, by=6))
+
+aucdat_trt <- data.frame("Time" = rep(seq(6, 168, by=6), 3), 
+                         "AUC" = c(prostatectomy_roc$AUC[-1], radiation_roc$AUC[-1], 
+                                   rtadt_roc$AUC[-1]), 
+                         "Treatment" = c(rep("Prostatectomy", 28), 
+                                         rep("Radiation alone", 28), 
+                                         rep("Radiation + hormone", 28)))
+
+aucplot_trt <- ggplot(data=aucdat_trt, aes(x=Time, y=AUC, group=Treatment, 
+                                           color=Treatment)) + geom_line() + 
+  xlab("Time (months)") + ylab("Time-dependent AUC in PLCO, Competing Risks")
+
+aucplot_trt
+
+auc_table_trt <- data.frame("Years" = c(5, 10, 14), 
+                            "Prostatectomy" = round(c(prostatectomy_roc$AUC[11], 
+                                                      prostatectomy_roc$AUC[21], 
+                                                      prostatectomy_roc$AUC[29]), 
+                                                    digits = 3), 
+                            "Radiation" = round(c(radiation_roc$AUC[11], 
+                                                  radiation_roc$AUC[21], 
+                                                  radiation_roc$AUC[29]), 
+                                                digits = 3), 
+                            "Radiation_hormone" = round(c(rtadt_roc$AUC[11], 
+                                                          rtadt_roc$AUC[21], 
+                                                          rtadt_roc$AUC[29]), 
+                                                        digits = 3))
+
+rownames(auc_table_trt) <- NULL
+kable(auc_table_trt, caption="Time-Dependent AUC in PLCO, by Treatment, Competing Risks")
+```
+
+We compare to the SSA and NVSS life tables:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=TRUE}
+ssa <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/ssa_2000.csv")
+ssa$age <- seq(0, 119, by = 1)
+
+nvss_black <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_blackmales_2001.csv")
+nvss_white <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_whitemales_2001.csv")
+nvss_other <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_allmales_2001.csv")
+nvss_other <- nvss_other[-102,]
+
+nvss <- data.frame("Age" = seq(0, 100, by = 1), "White" = nvss_white$Expectancy, "Black" = nvss_black$Expectancy, "Other" = nvss_other$Expectancy)
+
+plco_clean$ssa <- NA
+plco_clean$nvss <- NA
+for (i in 1:nrow(plco_clean)){
+  plco_clean$ssa[i] <- ssa$Expectancy[which(ssa$age==plco_clean$age[i])]
+  if (plco_clean$race2[i]=="NHW"){
+    plco_clean$nvss[i] <- nvss$White[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="NHB"){
+    plco_clean$nvss[i] <- nvss$Black[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="Other"){
+    plco_clean$nvss[i] <- nvss$Other[which(nvss$Age==plco_clean$age[i])]
+  }
+}
+
+ssa_roc <-
+  timeROC(
+    T = plco_clean2$permth_exm,
+    delta = plco_clean2$mortstat,
+    marker = 1/plco_clean$ssa,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+nvss_roc <-
+  timeROC(
+    T = plco_clean2$permth_exm,
+    delta = plco_clean2$mortstat,
+    marker = 1/plco_clean$nvss,
+    cause = 1,
+    weighting = "marginal",
+    times = seq(0, 168, by = 6)
+  )
+
+aucdat <-
+  data.frame("Time" = rep(seq(6, 168, by = 6), 2), 
+             "Model" = c(rep("SSA", 28), rep("NVSS", 28)),
+             "AUC" = c(ssa_roc$AUC[-1], nvss_roc$AUC[-1]))
+
+aucplot <-
+  ggplot(data = aucdat, aes(x = Time, y = AUC, group = Model, color=Model)) + 
+  geom_line() + xlab("Time (months)") + ylab("Time-dependent AUC in PLCO, Competing Risks")
+
+aucplot
+
+auc_table <- data.frame("Model" = c("SSA", "NVSS"), 
+                      "Year5" = round(c(ssa_roc$AUC[11], 
+                                        nvss_roc$AUC[11]), digits=3), 
+                      "Year10" = round(c(ssa_roc$AUC[21], 
+                                         nvss_roc$AUC[21]), digits=3), 
+                      "Year14" = round(c(ssa_roc$AUC[29], 
+                                         nvss_roc$AUC[29]), digits=3))
+
+kable(auc_table, caption="Time-Dependent AUC in PLCO, Competing Risks")
 ```
 
 ## PCSM Prediction

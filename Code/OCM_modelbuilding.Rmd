@@ -213,6 +213,14 @@ mydata$SDDSRVYR <-
     )
   )
 
+mydata$age_cat <- case_when(
+  mydata$age <= 50 ~ "41-50",
+  mydata$age > 50 & mydata$age <= 60 ~ "51-60",
+  mydata$age > 60 & mydata$age <= 70 ~ "61-70",
+  mydata$age > 70 & mydata$age <= 80 ~ "71-80",
+  mydata$age > 80 ~ ">80"
+)
+
 var_label(mydata$pc) <- "Has prostate cancer"
 var_label(mydata$permth_exm) <- "Survival (months)"
 var_label(mydata$age) <- "Age (years)"
@@ -617,6 +625,28 @@ mydata$inmodel4 <-
     0
   )
 
+
+nhanes_svy <-
+  svydesign(
+    data = mydata,
+    id =  ~ psu,
+    strata =  ~ strata,
+    weights =  ~ sweights,
+    nest = TRUE
+  )
+nhanes_sub4 <- subset(nhanes_svy, inmodel4 == 1)
+
+cox_final_cat <-
+  coxph(
+    Surv(permth_exm, mortstat) ~ age_cat + diabetic + educ + 
+      hypertension + marital2 + underweight + overweight2 + obese2 + smoker + 
+      stroke + scale(age, scale = FALSE) * diabetic + scale(age, scale = FALSE) * educ + 
+      scale(age, scale = FALSE) * hypertension + scale(age, scale = FALSE) * stroke + pc,
+    data = mydata[mydata$inmodel4 == 1, ]
+  )
+
+summary(cox_final_cat)
+
 cox_final <-
   coxph(
     Surv(permth_exm, mortstat) ~ scale(age, scale = FALSE) + diabetic + educ + 
@@ -627,6 +657,17 @@ cox_final <-
   )
 
 summary(cox_final)
+
+cox_final_svywt <-
+  svycoxph(
+    Surv(permth_exm, mortstat) ~ scale(age, scale = FALSE) + diabetic + educ + 
+      hypertension + marital2 + underweight + overweight2 + obese2 + smoker + 
+      stroke + scale(age, scale = FALSE) * diabetic + scale(age, scale = FALSE) * educ + 
+      scale(age, scale = FALSE) * hypertension + scale(age, scale = FALSE) * stroke + pc,
+    design = nhanes_sub4
+  )
+
+summary(cox_final_svywt)
 ```
 
 ## Random Forest Model Building

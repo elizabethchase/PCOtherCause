@@ -7,18 +7,26 @@ output: html_document
 
 ## Purpose 
 
-This app makes other-cause mortality predictions for U.S. prostate, colorectal, and lung cancer patients ages 40+.
+This app makes other-cause mortality predictions for U.S. prostate cancer patients ages 40+.
 
 ## Methods
 
 Our model is trained in the National Health and Nutrition Examination Survey (NHANES), a nationally representative, cross-sectional survey conducted every two years in the United States since 1999. Mortality follow-up on all NHANES participants is provided through a linkage with the National Death Index, with mortality follow-up through Dec. 31, 2014. For more information on NHANES, please visit their [website](https://www.cdc.gov/nchs/nhanes/index.htm). 
 
-For our analysis, we use NHANES data from 1999-2010, or 6 cycles of the survey. We restricted to patients older than 40 free of cancer other than the cancer site of interest (prostate, lung, colorectal) with complete data for all covariates used in model-building, and considered a range of demographic and health predictors. After considering several models, we settled on a Cox proportional hazards model to make predictions of other-cause mortality. 
+For our analysis, we use NHANES data from 1999-2010, or 6 cycles of the survey. We restricted to patients older than 40 free of cancer other than prostate cancer with complete data for all covariates used in model-building, and considered a range of demographic and health predictors. After considering several models, we settled on a Cox proportional hazards model to make predictions of other-cause mortality. 
 
 Critically, NHANES is not limited to cancer patients, but represents the entire U.S. population. To address this issue, we validated our models in the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO), looking only at participants who had the cancer site of interest. PLCO enrolled 155,000 participants between November 1993 and July 2001, with mortality follow-up through Dec. 31, 2009. For more information on the PLCO protocol and data, please see the trial’s [website](https://prevention.cancer.gov/major-programs/prostate-lung-colorectal-and-ovarian-cancer-screening-trial). We outputted other-cause mortality predictions from the model built in the NHANES training data for all patients in PLCO with complete data and then compared those predictions to the true outcome in PLCO. We assessed model performance using the time-dependent AUC. 
 
 More information on sample construction,  model building, and model validation is provided in the paper referenced below and on [GitHub](https://github.com/elizabethchase/OtherCauseCancer).
 
+## Interpretation
+
+We used a cause-specific Cox proportional hazards modeling approach to build our model in NHANES. This allows us to provide estimates of life expectancy in the absence of prostate cancer which is the intended meaning of 'life expectancy' in NCCN guidelines. Thus our model estimates life expectancy from other causes in the hypothetical situation in which the patient *cannot die of their prostate cancer*. 
+
+Using the PLCO data we also estimate cumulative incidence risk estimates in the setting of the competing risk of prostate cancer, using the linear predictor from our NHANES cause-specific model. We present these cumulative incidence risk estimates in the risk table, pictogram, and cumulative incidence plot. These estimates take the competing risk of prostate cancer mortality into account in making other-cause mortality predictions.
+
 ## Model Performance
+
+In PLCO, our model validated with a time-dependent AUC of 0.75 at 10 years and 0.78 at 14 years. Calibration was generally good, with evidence of slight pessimism. 
 
 ## References
