@@ -55,18 +55,29 @@ cox_40 <-
   )
 ```
 
-Supplementary Figure 1: Sample exclusions used to move from a sample of 9,214 men in National Health and Nutrition Examination Survey (NHANES) 1999-2010 to the final training cohort of 2,420 men used for model-building. 
-```{r, fig.align="center", out.width = "80%", message=FALSE, warning=FALSE, echo=FALSE}
-knitr::include_graphics(path = "/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Draft/nhanes_exclusions.png")
-```
+## Variable Definitions
+
+We constructed some of our variables from other NHANES variables. In particular:
+
+1.	We defined a patient as having hypertension if they reported a previous diagnosis of hypertension or if their blood pressure reading was hypertensive (we followed standard NHANES guidelines on constructing the blood pressure reading).
+
+2.	We defined a patient as having diabetes if they reported a previous diagnosis of diabetes or if their blood glucose met clinical criteria for diabetes.
+
+3.	We defined a patient as having high cholesterol if they reported high cholesterol, or if their blood work met clinical criteria for high cholesterol. 
+
+4.	We defined patients as current smokers if they had smoked 100 cigarettes in their lifetime and reported smoking cigarettes every day or some days at present; we defined patients as former smokers if they had smoked 100 cigarettes in their lifetime and reported smoking not at all at present; we defined patients as never smokers if they had not smoked 100 cigarettes in their lifetime. 
+
+5.	We defined being overweight as having BMI greater than or equal to 25 and less than 40 and being obese as having BMI greater than or equal to 40.
+
+6.	We collapsed marital status into three categories: married if the patient was currently married or living with a partner, separated if the patient was widowed, divorced, or separated from their partner, and single if the patient had never married.
+
+7.	We collapsed race into non-Hispanic white, non-Hispanic black, and all other races. 
+
+For all other variables, we used unmodified results from the NHANES questionnaires about demographics, health insurance, health care access, mental health, and medical history. For more information on variable definition and construction, please see the repository posted at: https://github.com/elizabethchase/PCOtherCause. 
 
 \newpage
-Supplementary Figure 2: Sample exclusions used to move from a sample of 8,776 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO) to the final validation cohort of 8,220 men used for model-building. 
-```{r, fig.align="center", out.width = "70%", message=FALSE, warning=FALSE, echo=FALSE}
-knitr::include_graphics(path = "/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Draft/plco_exclusions.png")
-```
+## Supplementary Findings
 
-\newpage
 Supplementary Table 1: Cause-specific and competing-risks time-dependent AUCs of our final OC mortality model in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO) validation cohort of 8,220 men.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #And now we obtain estimates of the C-index and time-dependent AUC from our model in the main treatment groups: prostatectomy, radiation, and radiation + hormone:
@@ -130,7 +141,7 @@ rm(list=c("subperf_trt", "cox40predict_prostatectomy", "cox40predict_radiation",
 ```
 
 \newpage
-Supplementary Figure 3: Forest plot comparing the effect sizes of predictors from the unweighted and survey weighted versions of our final OC mortality prediction model fit in the NHANES training cohort of 7,369 men. The model also includes interactions between age and diabetes, education, hypertension, and stroke. 
+Supplementary Figure 1: Forest plot comparing the effect sizes of predictors from the unweighted and survey weighted versions of our final OC mortality prediction model fit in the NHANES training cohort of 7,369 men. The model also includes interactions between age and diabetes, education, hypertension, and stroke. 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 table_model <- summary(cox_40)$conf.int
 table_model[1, 1] <- exp(10*log(table_model[1, 1]))
