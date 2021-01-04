@@ -289,7 +289,8 @@ subperf <- data.frame("Model" = rep(c("OCCAM", "Age Model", "SSA", "NVSS"), 6), 
 ```
 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE, eval = TRUE}
-aucplot <- ggplot(data = subperf[subperf$Metric=="CS" & subperf$Model != "Age Model",], aes (x = Year, y = AUC, group = Model, color = Model)) + geom_point() + geom_line() + geom_errorbar(aes(ymin = Lower/100, ymax = Upper/100, width = 0.05)) + ylab("IPCW Time-Dependent AUC") + xlab("Time (Years)") + scale_x_continuous(breaks = c(0, 5, 10, 15)) + theme_bw() + scale_color_manual(values = c("mediumpurple4", "grey74", "darkred")) + scale_y_continuous(breaks = c(0.5, 0.75, 1)) + coord_cartesian(ylim = c(0.5, 1))
+subperf$Model <- factor(subperf$Model, levels=c("OCCAM", "NVSS", "SSA", "Age Model"), ordered = TRUE)
+aucplot <- ggplot(data = subperf[subperf$Metric=="CS" & subperf$Model != "Age Model",], aes (x = Year, y = AUC, group = Model, color = Model)) + geom_point() + geom_line() + geom_errorbar(aes(ymin = Lower/100, ymax = Upper/100, width = 0.05)) + ylab("IPCW Time-Dependent AUC") + xlab("Time (Years)") + scale_x_continuous(breaks = c(0, 5, 10, 15)) + theme_bw() + scale_color_manual(values = c("darkred", "mediumpurple4", "grey74")) + scale_y_continuous(breaks = c(0.5, 0.75, 1)) + coord_cartesian(ylim = c(0.5, 1))
 
 aucplot
 
@@ -416,7 +417,7 @@ myplot <- ggplot() + geom_line(data = calibration_data, aes(x=Time, y=Observed,
                      breaks = seq(2, 16, by=3)) + 
   scale_y_continuous(name = "Observed Life Expectancy", 
                      breaks = seq(2, 23, by=3)) + theme_bw() + 
-  geom_abline(slope = 1, intercept = 0) + scale_color_manual(values = c("mediumpurple4","darkred", "grey74"), name = "Model") + theme(legend.position = "bottom") + coord_cartesian(ylim = c(2, 23), xlim = c(2,16))
+  geom_abline(slope = 1, intercept = 0) + scale_color_manual(values = c("darkred", "mediumpurple4", "grey74"), name = "Model") + theme(legend.position = "bottom") + coord_cartesian(ylim = c(2, 23), xlim = c(2,16))
 
 myplot
 
