@@ -451,7 +451,7 @@ myplot <- ggplot(data=plco_clean) + geom_density(aes(x=medsurv, color = age_grp,
 ```
 
 \newpage
-Figure 5: Proportion of men receiving a particular treatment in a cohort of 7,596 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO), grouped by NCCN prostate cancer risk group and median survival prediction.
+Figure 5: Number of men receiving a particular treatment in a cohort of 7,596 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO), grouped by NCCN prostate cancer risk group and median OCCAM survival prediction.
 ```{r, fig.align="center", fig.height=4, fig.width=9, message=FALSE, warning=FALSE, echo=FALSE}
 #Figure 6: Treatment concordance with OCM predictions:
 prostatedata <- read_csv("~/Box/PLCO Data/Prostate/pros_data_nov18_d070819.csv.zip")
@@ -721,7 +721,7 @@ plco_clean2$pc_risk_group <- case_when(
   plco_clean2$nstage=="N1" | plco_clean2$nstage=="N2" ~ "Regional"
 )
 
-plco_clean2$pc_risk_group <- factor(plco_clean2$pc_risk_group, levels=c("Low", "Intermediate", "High", "Regional"), ordered = TRUE)
+plco_clean2$pc_risk_group <- factor(plco_clean2$pc_risk_group, levels=c("Low", "Intermediate", "High", "Regional"), labels = c("NCCN: Low", "NCCN: Intermediate", "NCCN: High", "Regional"), ordered = TRUE)
 
 var_label(plco_clean2$age) <- "Age (years)"
 var_label(plco_clean2$race2) <- "Race"
@@ -775,7 +775,12 @@ prop_dataset <- rbind(prop_dataset1, prop_dataset2, prop_dataset3, prop_dataset4
 prop_dataset$pc_risk_group <- factor(prop_dataset$pc_risk_group, levels=c("Low", "Intermediate", "High"), ordered=TRUE)
 prop_dataset$treatment <- factor(prop_dataset$treatment, levels=c("Conservative management", "Radiation alone", "Radiation + hormone", "Prostatectomy"), ordered=TRUE)
 
-newplot2 <- ggplot(data = prop_dataset, aes(x=pc_risk_group, y = prop*100, color = riskgroup)) + geom_point() + geom_line(aes(group = riskgroup, color = riskgroup)) + theme_bw() + xlab("PC Risk Group") + ylab("Percent Receiving Treatment") + facet_grid(~treatment) + theme(legend.position = "bottom", text=element_text(size=12), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5)) + scale_color_manual(name = "Life Expectancy (Years)", values = c("mediumpurple4", "gray74", "darkblue", "darkred")) + scale_y_continuous(breaks = seq(0, 100, by=20)) + coord_cartesian(ylim = c(0, 100)) 
+#newplot2 <- ggplot(data = prop_dataset, aes(x=pc_risk_group, y = prop*100, color = riskgroup)) + geom_point() + geom_line(aes(group = riskgroup, color = riskgroup)) + theme_bw() + xlab("PC Risk Group") + ylab("Percent Receiving Treatment") + facet_grid(~treatment) + theme(legend.position = "bottom", text=element_text(size=12), axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5)) + scale_color_manual(name = "Life Expectancy (Years)", values = c("mediumpurple4", "gray74", "darkblue", "darkred")) + scale_y_continuous(breaks = seq(0, 100, by=20)) + coord_cartesian(ylim = c(0, 100)) 
+
+#display.brewer.pal(n = 9, name = 'BuPu')
+colors <- brewer.pal(n = 9, name = "BuPu")[c(4, 5, 8, 9)]
+
+newplot2 <- ggplot(data = filter(plco_clean3, !is.na(pc_risk_group), pc_risk_group != "Regional"), aes(x = riskgroup, group = primary_tx, fill = primary_tx)) + geom_bar(position = "dodge") + facet_wrap(~pc_risk_group, nrow = 1) + theme_bw() + theme(legend.position = "bottom", text=element_text(size=12)) + scale_fill_manual(name = "Primary Treatment", values = colors) + xlab("OCCAM Life Expectancy") + ylab("Frequency")
 
 newplot2
 

@@ -1,18 +1,6 @@
 ---
-title: "Supplement"
-author: "Elizabeth Chase"
-date: "10/20/2020"
-output: pdf_document
----
-
----
-title: "OCM_figurestables"
-author: "Elizabeth Chase"
-date: "9/22/2020"
-header-includes:
-  - \usepackage{lscape}
-  - \newcommand{\blandscape}{\begin{landscape}}
-  - \newcommand{\elandscape}{\end{landscape}}
+title: |
+  \Large{Supplementary Materials: Development and Validation of the Other-Cause Comorbidity-Adjusted Mortality (OCCAM) Model for Clinical Use in Men with Prostate Cancer}
 output: pdf_document
 ---
 
@@ -73,12 +61,12 @@ We constructed some of our variables from other NHANES variables. In particular:
 
 7.	We collapsed race into non-Hispanic white, non-Hispanic black, and all other races. 
 
-For all other variables, we used unmodified results from the NHANES questionnaires about demographics, health insurance, health care access, mental health, and medical history. For more information on variable definition and construction, please see the repository posted at: https://github.com/elizabethchase/PCOtherCause. 
+For all other variables, we used unmodified results from the NHANES questionnaires about demographics, health insurance, health care access, mental health, and medical history. For more information on variable definition and construction, please see the repository posted at: https://github.com/blindedforreview/PCOtherCause. 
 
 \newpage
 ## Supplementary Findings
 
-Supplementary Table 1: Cause-specific and competing-risks time-dependent AUCs of our final OC mortality model in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO) validation cohort of 8,220 men.
+Supplementary Table 1: Cause-specific and competing-risks time-dependent AUCs of OCCAM in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO) validation cohort of 8,220 men.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #And now we obtain estimates of the C-index and time-dependent AUC from our model in the main treatment groups: prostatectomy, radiation, and radiation + hormone:
 times <- seq(6, 180, by=6)
@@ -99,7 +87,7 @@ kable(subperf_trt, col.names = c("Metric", "5 Years", "10 Years", "15 Years")) %
 ```
 
 \newpage
-Supplementary Table 2: Time-dependent AUC of our final OC mortality model in the three main treatment groups in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO) validation cohort of 8,220 men.
+Supplementary Table 2: Time-dependent AUC of OCCAM in the three main treatment groups in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO) validation cohort of 8,220 men.
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #And now we obtain estimates of the C-index and time-dependent AUC from our model in the main treatment groups: prostatectomy, radiation, and radiation + hormone:
 times <- seq(6, 180, by=6)
@@ -141,7 +129,7 @@ rm(list=c("subperf_trt", "cox40predict_prostatectomy", "cox40predict_radiation",
 ```
 
 \newpage
-Supplementary Figure 1: Forest plot comparing the effect sizes of predictors from the unweighted and survey weighted versions of our final OC mortality prediction model fit in the NHANES training cohort of 7,369 men. The model also includes interactions between age and diabetes, education, hypertension, and stroke. 
+Supplementary Figure 1: Forest plot comparing the effect sizes of predictors from the unweighted and survey weighted versions of OCCAM fit in the NHANES training cohort of 7,369 men. The model also includes interactions between age and diabetes, education, hypertension, and stroke. 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 table_model <- summary(cox_40)$conf.int
 table_model[1, 1] <- exp(10*log(table_model[1, 1]))
@@ -184,7 +172,7 @@ rm(list=c("adj_plot", "cox_plotdata", "table_model"))
 ```
 
 \newpage
-Supplementary Table 3: Characteristics of a cohort of 7,596 men from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial, grouped by predicted median survival time from our OC mortality model. 
+Supplementary Table 3: Characteristics of a cohort of 7,596 men from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial, grouped by OCCAM-predicted median survival time. 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #Figure 6: Treatment concordance with OCM predictions:
 prostatedata <- read_csv("~/Box/PLCO Data/Prostate/pros_data_nov18_d070819.csv.zip")
@@ -499,7 +487,7 @@ kable(print(table_example, contDigits=1, varLabel = T, printToggle=FALSE), bookt
 
 \newpage
 
-Supplementary Table 3, cont.: Characteristics of a cohort of 7,596 men from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial, grouped by predicted median survival time from our OC mortality model. 
+Supplementary Table 3, cont.: Characteristics of a cohort of 7,596 men from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial, grouped by OCCAM-predicted median survival time. 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 table_example2 <- CreateTableOne(vars = c("tstage", "gleason", "dx_psa", "pc_risk_group", "primary_tx", "mortstat"), strata = "causespecific_group", includeNA = TRUE, data = plco_clean2, argsNormal = list(NULL), argsNonNormal = list(var.equal = TRUE))
 
