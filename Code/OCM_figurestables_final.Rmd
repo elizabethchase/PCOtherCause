@@ -290,7 +290,8 @@ subperf <- data.frame("Model" = rep(c("OCCAM", "Age Model", "SSA", "NVSS"), 6), 
 
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE, eval = TRUE}
 subperf$Model <- factor(subperf$Model, levels=c("OCCAM", "NVSS", "SSA", "Age Model"), ordered = TRUE)
-aucplot <- ggplot(data = subperf[subperf$Metric=="CS" & subperf$Model != "Age Model",], aes (x = Year, y = AUC, group = Model, color = Model)) + geom_point() + geom_line() + geom_errorbar(aes(ymin = Lower/100, ymax = Upper/100, width = 0.05)) + ylab("IPCW Time-Dependent AUC") + xlab("Time (Years)") + scale_x_continuous(breaks = c(0, 5, 10, 15)) + theme_bw() + scale_color_manual(values = c("darkred", "mediumpurple4", "grey74")) + scale_y_continuous(breaks = c(0.5, 0.75, 1)) + coord_cartesian(ylim = c(0.5, 1))
+
+aucplot <- ggplot(data = subperf[subperf$Metric=="CS" & subperf$Model != "Age Model",], aes (x = Year, y = AUC, group = Model, color = Model)) + geom_point(position = position_dodge(width = 0.4)) + geom_line() + geom_errorbar(aes(ymin = Lower/100, ymax = Upper/100, width = 0.05), position = position_dodge(width = 0.4)) + ylab("IPCW Time-Dependent AUC") + xlab("Time (Years)") + scale_x_continuous(breaks = c(0, 5, 10, 15)) + theme_bw() + scale_color_manual(values = c("darkred", "mediumpurple4", "grey74")) + scale_y_continuous(breaks = c(0.5, 0.75, 1)) + coord_cartesian(ylim = c(0.5, 1))
 
 aucplot
 
@@ -451,7 +452,7 @@ myplot <- ggplot(data=plco_clean) + geom_density(aes(x=medsurv, color = age_grp,
 ```
 
 \newpage
-Figure 5: Number of men receiving a particular treatment in a cohort of 7,596 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO), grouped by NCCN prostate cancer risk group and median OCCAM survival prediction.
+Figure 5: Number of men receiving a particular treatment in a cohort of 7,596 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO), grouped by NCCN prostate cancer risk group and predicted OCCAM life expectancy.
 ```{r, fig.align="center", fig.height=4, fig.width=9, message=FALSE, warning=FALSE, echo=FALSE}
 #Figure 6: Treatment concordance with OCM predictions:
 prostatedata <- read_csv("~/Box/PLCO Data/Prostate/pros_data_nov18_d070819.csv.zip")
