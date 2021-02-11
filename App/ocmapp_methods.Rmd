@@ -21,9 +21,7 @@ More information on sample construction,  model building, and model validation i
 
 ## Interpretation
 
-We used a cause-specific Cox proportional hazards modeling approach to build our model in NHANES. This allows us to provide estimates of life expectancy in the absence of prostate cancer which is the intended meaning of 'life expectancy' in NCCN guidelines. Thus our model estimates life expectancy from other causes in the hypothetical situation in which the patient *cannot die of their prostate cancer*. 
-
-Using the PLCO data we also estimate cumulative incidence risk estimates in the setting of the competing risk of prostate cancer, using the linear predictor from our NHANES cause-specific model. We present these cumulative incidence risk estimates in the risk table, pictogram, and cumulative incidence plot. These estimates take the competing risk of prostate cancer mortality into account in making other-cause mortality predictions.
+We used a cause-specific Cox proportional hazards modeling approach to build our model in NHANES. This allows us to provide estimates of life expectancy and mortality risk in the absence of prostate cancer which is the intended meaning of 'life expectancy' in NCCN guidelines. Thus our model estimates life expectancy from other causes in the hypothetical situation in which the patient *cannot die of their prostate cancer*. 
 
 ## Model Performance
 

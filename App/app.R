@@ -90,7 +90,7 @@ ui <- fluidPage(
                        textOutput("text1"), 
                        br(),
                        tableOutput("table1"),
-                       bsTooltip("table1", "This is a patient's life expectancy (in the absence of prostate cancer) and their probability of dying of other causes at 5 and 10 years (taking the competing risk of prostate cancer into account).", 
+                       bsTooltip("table1", "This is a patient's life expectancy and their probability of dying of other causes at 5 and 10 years (in the absence of prostate cancer).", 
                                  "right", options = list(container = "body"))
                      ),
                      tabPanel(
@@ -175,16 +175,6 @@ server <- function(input, output) {
     
     #mydata <- mydata[mydata$inmodel4 == 1, ]
     
-    pred.ctsMod <- function(covs) {
-        lhat <- cumsum(exp(sum(covs * mycoef)) * mybaseline)
-        lhat <- cbind(myuftime, 1 - exp(-lhat))
-        lhat
-    }
-    
-    fg_covariates1 <- predict(cox_40, pc_dat, type = "lp")
-    covs_fg <- model.matrix(~ fg_covariates1 )[-1]
-    fg_predictions <- pred.ctsMod(covs=covs_fg)
-    
     pc_prediction <- survfit(cox_40, pc_dat)
     
     inds <- which(pc_prediction$surv-0.5 <= 0)
@@ -222,11 +212,10 @@ server <- function(input, output) {
     
     #pcdat <- data.frame("Time" = c(pc_prediction$time, fg_predictions[,1]), "Risk" = c(1-pc_prediction$surv, fg_predictions[,2]),
      #                   "Model" = c(rep("Cause-Specific", length(pc_prediction$time)), rep("Fine and Gray", length(fg_predictions[,1]))))
-    #pcdat2 <- data.frame("Time" = pc_prediction$time, "Lower" = 1-pc_prediction$lower, 
-     #                   "Upper" = 1-pc_prediction$upper)
+    pcdat <- data.frame("Time" = pc_prediction$time, "Risk" = 1-pc_prediction$surv, "Lower" = 1-pc_prediction$lower, 
+                       "Upper" = 1-pc_prediction$upper)
     
-    pcdat <- data.frame("Time" = fg_predictions[,1], "Risk" = fg_predictions[,2])
-    
+   
     riskten <- pcdat$Risk[which.min(ifelse((120-pcdat$Time) < 0, NA, (120-pcdat$Time)))]
     riskfive <- pcdat$Risk[which.min(ifelse((60-pcdat$Time) < 0, NA, (60-pcdat$Time)))]
     
