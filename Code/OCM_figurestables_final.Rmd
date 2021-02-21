@@ -132,7 +132,7 @@ rm(list=c("adj_plot", "cox_plotdata", "table_model"))
 
 \newpage
 
-Table 2: Percent of men with OCCAM-predicted median survival of 0-5, 5-10, 10-15, and 15+ years, grouped by age, in a cohort of 8,220 men with prostate cancer from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO). Although older men generally have reduced life expectancy predictions, we see that a substantial proportion of older men also have long life expectancy predictions, which cannot be captured by predictions that rely on age alone.
+Figure  3: Scatterplot comparing Social Security Administration’s 2001 actuarial life table predictions (SSA) to predictions from our other-cause comorbidity-adjusted model (OCCAM) in a cohort of 8,220 men with prostate cancer from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO).
 ```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #Figure 7: Distribution of life expectancy across age group
 km_predictions <- survfit(cox_40, plco_clean)
@@ -158,6 +158,49 @@ plco_clean$age_grp <- case_when(
   plco_clean$age >= 85 ~ "85+"
 )
 
+ssa <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/ssa_2000.csv")
+ssa$age <- seq(0, 119, by = 1)
+
+nvss_black <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_blackmales_2001.csv")
+nvss_white <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_whitemales_2001.csv")
+nvss_other <- read_csv("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nvss_allmales_2001.csv")
+nvss_other <- nvss_other[-102,]
+
+nvss <- data.frame("Age" = seq(0, 100, by = 1), "White" = nvss_white$Expectancy, "Black" = nvss_black$Expectancy, "Other" = nvss_other$Expectancy)
+
+plco_clean$ssa <- NA
+plco_clean$nvss <- NA
+for (i in 1:nrow(plco_clean)){
+  plco_clean$ssa[i] <- ssa$Expectancy[which(ssa$age==plco_clean$age[i])]
+  if (plco_clean$race2[i]=="NHW"){
+    plco_clean$nvss[i] <- nvss$White[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="NHB"){
+    plco_clean$nvss[i] <- nvss$Black[which(nvss$Age==plco_clean$age[i])]
+  } else if (plco_clean$race2[i]=="Other"){
+    plco_clean$nvss[i] <- nvss$Other[which(nvss$Age==plco_clean$age[i])]
+  }
+}
+
+plco_clean$ssa2 <- ifelse(plco_clean$ssa >= 15, 15, plco_clean$ssa)
+
+plco_clean$concordance <- case_when(
+  (plco_clean$ssa2 < 10 & plco_clean$medsurv < 120) |  (plco_clean$ssa2 >= 10 & plco_clean$medsurv >= 120 ) ~ "Concordant",
+  plco_clean$ssa2 >= 10 & plco_clean$medsurv < 120 ~ "Overestimated", 
+  plco_clean$ssa2 < 10 & plco_clean$medsurv >= 120 ~ "Underestimated", 
+)
+
+myplot <- ggplot(data=plco_clean, aes(x = ssa2, y = medsurv/12, color = concordance)) + geom_jitter(alpha = 0.5, width = 0.3, height = 0.3) + theme_bw() + xlab("SSA Predicted Life Expectancy (years)") + ylab("OCCAM Predicted Life Expectancy (years)") + geom_hline(yintercept = 10) + geom_vline(xintercept = 10) + geom_abline(slope = 1, intercept = 0) + scale_x_continuous(breaks = c(5, 10, 15), sec.axis = sec_axis(~ . , name = "Age at diagnosis (years)", breaks = c(5, 10, 15), labels=c("86", "74", "66"))) + scale_y_continuous(breaks = c(5, 10, 15)) + coord_cartesian(xlim = c(4, 16), ylim = c(4, 16)) + scale_color_manual(name = "Concordance", values = c("grey74", "mediumpurple4", "darkred")) + theme(legend.position = "bottom")
+
+myplot
+
+ggsave("concordance_plot.pdf", myplot)
+```
+
+\newpage
+
+Table 2: Percent of men with OCCAM-predicted median survival of 0-5, 5-10, 10-15, and 15+ years, grouped by age, in a cohort of 8,220 men with prostate cancer from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO). Although older men generally have reduced life expectancy predictions, we see that a substantial proportion of older men also have long life expectancy predictions, which cannot be captured by predictions that rely on age alone.
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#Figure 7: Distribution of life expectancy across age group
 lifeexpdat <- data.frame("Age" = c("55-64", "65-74", "75-84", "85+"), "SampleSize" = c(length(which(plco_clean$age_grp=="55-64")), length(which(plco_clean$age_grp=="65-74")), length(which(plco_clean$age_grp=="75-84")), length(which(plco_clean$age_grp=="85+"))), "LowLE" = round(100*c(length(which(plco_clean$age_grp=="55-64" & plco_clean$medsurv < 60))/length(which(plco_clean$age_grp=="55-64")), length(which(plco_clean$age_grp=="65-74" & plco_clean$medsurv < 60))/length(which(plco_clean$age_grp=="65-74")), length(which(plco_clean$age_grp=="75-84" & plco_clean$medsurv < 60))/length(which(plco_clean$age_grp=="75-84")), length(which(plco_clean$age_grp=="85+" & plco_clean$medsurv < 60))/length(which(plco_clean$age_grp=="85+"))), digits=1), "IntermediateLE" = round(100*c(length(which(plco_clean$age_grp=="55-64" & plco_clean$medsurv < 120 & plco_clean$medsurv >= 60))/length(which(plco_clean$age_grp=="55-64")), length(which(plco_clean$age_grp=="65-74" & plco_clean$medsurv < 120 & plco_clean$medsurv >= 60))/length(which(plco_clean$age_grp=="65-74")), length(which(plco_clean$age_grp=="75-84" & plco_clean$medsurv < 120 & plco_clean$medsurv >= 60))/length(which(plco_clean$age_grp=="75-84")), length(which(plco_clean$age_grp=="85+" & plco_clean$medsurv < 120 & plco_clean$medsurv >= 60))/length(which(plco_clean$age_grp=="85+"))), digits=1), "IntermedHighLE" = round(100*c(length(which(plco_clean$age_grp=="55-64" & plco_clean$medsurv < 180 & plco_clean$medsurv >= 120))/length(which(plco_clean$age_grp=="55-64")), length(which(plco_clean$age_grp=="65-74" & plco_clean$medsurv < 180 & plco_clean$medsurv >= 120))/length(which(plco_clean$age_grp=="65-74")), length(which(plco_clean$age_grp=="75-84" & plco_clean$medsurv < 180 & plco_clean$medsurv >= 120))/length(which(plco_clean$age_grp=="75-84")), length(which(plco_clean$age_grp=="85+" & plco_clean$medsurv < 180 & plco_clean$medsurv >= 120))/length(which(plco_clean$age_grp=="85+"))), digits=1), "HighLE" = round(100*c(length(which(plco_clean$age_grp=="55-64" & plco_clean$medsurv >= 180))/length(which(plco_clean$age_grp=="55-64")), length(which(plco_clean$age_grp=="65-74" & plco_clean$medsurv >= 180))/length(which(plco_clean$age_grp=="65-74")), length(which(plco_clean$age_grp=="75-84" & plco_clean$medsurv >= 180))/length(which(plco_clean$age_grp=="75-84")), length(which(plco_clean$age_grp=="85+" & plco_clean$medsurv >= 180))/length(which(plco_clean$age_grp=="85+"))), digits=1))
 
 lifeexpdat$LowLE <- paste0(lifeexpdat$LowLE, "%")
@@ -173,7 +216,7 @@ myplot <- ggplot(data=plco_clean) + geom_density(aes(x=medsurv, color = age_grp,
 ```
 
 \newpage
-Figure 3: Number of men receiving a particular treatment in a cohort of 7,596 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO), grouped by NCCN prostate cancer risk group and predicted OCCAM life expectancy.
+Figure 4: Number of men receiving a particular treatment in a cohort of 7,596 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO), grouped by NCCN prostate cancer risk group and predicted OCCAM life expectancy.
 ```{r, fig.align="center", fig.height=4, fig.width=9, message=FALSE, warning=FALSE, echo=FALSE}
 #Figure 6: Treatment concordance with OCM predictions:
 prostatedata <- read_csv("~/Box/PLCO Data/Prostate/pros_data_nov18_d070819.csv.zip")

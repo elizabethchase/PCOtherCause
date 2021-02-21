@@ -90,18 +90,10 @@ ui <- fluidPage(
                        textOutput("text1"), 
                        br(),
                        tableOutput("table1"),
-                       bsTooltip("table1", "This is a patient's life expectancy and their probability of dying of other causes at 5 and 10 years (in the absence of prostate cancer).", 
-                                 "right", options = list(container = "body"))
+                       "This is a patient's life expectancy and their probability of dying of other causes at 5 and 10 years (in the absence of prostate cancer)."
                      ),
                      tabPanel(
-                       "Pictogram",
-                       br(),
-                       textOutput("text2"),
-                       br(),
-                       plotOutput("pict1")
-                     ),
-                     tabPanel(
-                       "Cumulative Incidence",
+                       "Survival Curve",
                        plotOutput("plot1"),
                        fluidRow(
                          column(sliderInput(inputId = "years", label="Years", min = 0, max = 15, value = 10), width = 10),
@@ -186,7 +178,7 @@ server <- function(input, output) {
     }
     
     pc_dat$medsurv <- mytime
-    pc_dat$medsurv2 <- ifelse(pc_dat$medsurv>=180, "15+ years", paste0(round(pc_dat$medsurv/12, digits=0), " years"))
+    pc_dat$medsurv2 <- ifelse(pc_dat$medsurv>=180, ">15 years", paste0(round(pc_dat$medsurv/12, digits=0), " years"))
     pc_dat$bmi <- pc_bmi
     pc_dat$age <- input$pc_age
     pc_dat$strokestat <- ifelse(pc_dat$stroke=="Yes", "a previous stroke", "no history of stroke")
@@ -219,7 +211,7 @@ server <- function(input, output) {
     riskten <- pcdat$Risk[which.min(ifelse((120-pcdat$Time) < 0, NA, (120-pcdat$Time)))]
     riskfive <- pcdat$Risk[which.min(ifelse((60-pcdat$Time) < 0, NA, (60-pcdat$Time)))]
     
-    resultstab <- data.frame("Metric" = c("Median Survival", "5-Year Mortality", "10-Year Mortality"), 
+    resultstab <- data.frame("Metric" = c("Life Expectancy", "5-Year Mortality", "10-Year Mortality"), 
                              "Prediction" = c(paste0(pc_dat$medsurv2),
                                               paste0(round(riskfive*100, digits = 0), "%"),
                                               paste0(round(riskten*100, digits = 0), "%")))
@@ -261,7 +253,7 @@ server <- function(input, output) {
   })
   
   output$info1 <- renderText({
-    paste0("Estimated probability of dying of other causes within ", round(input$years, digits = 2), " years: ", model()$mypred, "%.")
+    paste0("Estimated probability of dying of other causes in the absence of prostate cancer within ", round(input$years, digits = 2), " years: ", model()$mypred, "%.")
   })
   
   output$pict1 <- renderPlot({
