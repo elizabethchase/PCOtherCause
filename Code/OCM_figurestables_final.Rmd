@@ -133,7 +133,7 @@ rm(list=c("adj_plot", "cox_plotdata", "table_model"))
 \newpage
 
 Figure  3: Scatterplot comparing Social Security Administration’s 2001 actuarial life table predictions (SSA) to predictions from our other-cause comorbidity-adjusted model (OCCAM) in a cohort of 8,220 men with prostate cancer from the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO).
-```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+```{r, fig.align="center", fig.height=6, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
 #Figure 7: Distribution of life expectancy across age group
 km_predictions <- survfit(cox_40, plco_clean)
 
@@ -183,17 +183,20 @@ for (i in 1:nrow(plco_clean)){
 
 plco_clean$ssa2 <- ifelse(plco_clean$ssa >= 15, 15, plco_clean$ssa)
 
-plco_clean$concordance <- case_when(
+plco_clean$Concordance <- case_when(
   (plco_clean$ssa2 < 10 & plco_clean$medsurv < 120) |  (plco_clean$ssa2 >= 10 & plco_clean$medsurv >= 120 ) ~ "Concordant",
   plco_clean$ssa2 >= 10 & plco_clean$medsurv < 120 ~ "Overestimated", 
   plco_clean$ssa2 < 10 & plco_clean$medsurv >= 120 ~ "Underestimated", 
 )
 
-myplot <- ggplot(data=plco_clean, aes(x = ssa2, y = medsurv/12, color = concordance)) + geom_jitter(alpha = 0.5, width = 0.3, height = 0.3) + theme_bw() + xlab("SSA Predicted Life Expectancy (years)") + ylab("OCCAM Predicted Life Expectancy (years)") + geom_hline(yintercept = 10) + geom_vline(xintercept = 10) + geom_abline(slope = 1, intercept = 0) + scale_x_continuous(breaks = c(5, 10, 15), sec.axis = sec_axis(~ . , name = "Age at diagnosis (years)", breaks = c(5, 10, 15), labels=c("86", "74", "66"))) + scale_y_continuous(breaks = c(5, 10, 15)) + coord_cartesian(xlim = c(4, 16), ylim = c(4, 16)) + scale_color_manual(name = "Concordance", values = c("grey74", "mediumpurple4", "darkred")) + theme(legend.position = "bottom")
+myplot <- ggplot(data=plco_clean, aes(x = ssa2, y = medsurv/12, color = Concordance)) + geom_jitter(alpha = 0.5, width = 0.3, height = 0.3) + theme_bw(base_size = 12) + xlab("SSA Predicted Life Expectancy (years)") + ylab("OCCAM Predicted Life Expectancy (years)") + geom_hline(yintercept = 10) + geom_vline(xintercept = 10) + geom_abline(slope = 1, intercept = 0) + scale_x_continuous(breaks = c(5, 10, 15), sec.axis = sec_axis(~ . , name = "Age at diagnosis (years)", breaks = c(5, 10, 15), labels=c("86", "74", "66"))) + scale_y_continuous(breaks = c(5, 10, 15)) + coord_cartesian(xlim = c(4, 16), ylim = c(4, 16)) + scale_color_manual(name = "Concordance", values = c("grey74", "mediumpurple4", "darkred")) + theme(legend.position = "bottom")
+
+myplot2 <- ggplot(data=plco_clean, aes(x = ssa2, y = medsurv/12, shape = Concordance)) + geom_jitter(width = 0.3, height = 0.3, fill = NA, size = 0.5) + theme_bw(base_size = 12) + xlab("SSA Predicted Life Expectancy (years)") + ylab("OCCAM Predicted Life Expectancy (years)") + geom_hline(yintercept = 10) + geom_vline(xintercept = 10) + geom_abline(slope = 1, intercept = 0) + scale_x_continuous(breaks = c(5, 10, 15), sec.axis = sec_axis(~ . , name = "Age at diagnosis (years)", breaks = c(5, 10, 15), labels=c("86", "74", "66"))) + scale_y_continuous(breaks = c(5, 10, 15)) + coord_cartesian(xlim = c(4, 16), ylim = c(4, 16)) + theme(legend.position = "bottom") + scale_shape_manual(values=c(3, 2, 1))
 
 myplot
 
 ggsave("concordance_plot.pdf", myplot)
+ggsave("concordance_plot_nocolor.pdf", myplot2)
 ```
 
 \newpage
@@ -545,7 +548,9 @@ prop_dataset$treatment <- factor(prop_dataset$treatment, levels=c("Conservative 
 #display.brewer.pal(n = 9, name = 'BuPu')
 colors <- brewer.pal(n = 9, name = "BuPu")[c(4, 5, 8, 9)]
 
-newplot2 <- ggplot(data = filter(plco_clean3, !is.na(pc_risk_group), pc_risk_group != "Regional"), aes(x = riskgroup, group = primary_tx, fill = primary_tx)) + geom_bar(position = "dodge") + facet_wrap(~pc_risk_group, nrow = 1) + theme_bw() + theme(legend.position = "bottom", text=element_text(size=12)) + scale_fill_manual(name = "Primary Treatment", values = colors) + xlab("OCCAM Life Expectancy") + ylab("Frequency")
+#newplot2 <- ggplot(data = filter(plco_clean3, !is.na(pc_risk_group), pc_risk_group != "Regional"), aes(x = riskgroup, group = primary_tx, fill = primary_tx)) + geom_bar(position = "dodge") + facet_wrap(~pc_risk_group, nrow = 1) + theme_bw() + theme(legend.position = "bottom", text=element_text(size=12)) + scale_fill_manual(name = "Primary Treatment", values = colors) + xlab("OCCAM Life Expectancy") + ylab("Frequency")
+
+newplot2 <- ggplot(data = filter(plco_clean3, !is.na(pc_risk_group), pc_risk_group != "Regional"), aes(x = riskgroup, group = primary_tx, fill = primary_tx)) + geom_bar(position = "dodge") + facet_wrap(~pc_risk_group, nrow = 1) + theme_bw() + theme(legend.position = "bottom", text=element_text(size=12)) + scale_fill_grey(name = "Primary Treatment") + xlab("OCCAM Life Expectancy") + ylab("Frequency")
 
 newplot2
 

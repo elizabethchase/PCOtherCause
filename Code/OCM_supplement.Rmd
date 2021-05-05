@@ -391,15 +391,25 @@ calibration_data <- data.frame("Time" = rep(c(2.5, 6, 8.5, 11, 13.5, 15), 3), "M
 
 calibration_data[calibration_data==202/12] <- 25
 
+#myplot <- ggplot() + geom_line(data = calibration_data, aes(x=Time, y=Observed, 
+                  #                                              group = Model, 
+                #                                                color = Model)) +
+ # geom_errorbar(data = calibration_data, aes(x = Time, ymin = Lower, ymax = Upper, group = Model, color = Model, width = 0.5)) + 
+#  scale_x_continuous(name = "Predicted Life Expectancy", 
+#                     breaks = seq(2, 16, by=3)) + 
+#  scale_y_continuous(name = "Observed Life Expectancy", 
+#                     breaks = seq(2, 23, by=3)) + theme_bw() + 
+ # geom_abline(slope = 1, intercept = 0) + scale_color_manual(values = c("darkred", "mediumpurple4", "grey74"), name = "Model") + theme(legend.position = "bottom") + coord_cartesian(ylim = c(2, 23), xlim = c(2,16))
+
 myplot <- ggplot() + geom_line(data = calibration_data, aes(x=Time, y=Observed, 
                                                                 group = Model, 
-                                                                color = Model)) +
-  geom_errorbar(data = calibration_data, aes(x = Time, ymin = Lower, ymax = Upper, group = Model, color = Model, width = 0.5)) + 
+                                                                linetype = Model)) +
+  geom_errorbar(data = calibration_data, aes(x = Time, ymin = Lower, ymax = Upper, group = Model, linetype = Model, width = 0.5)) + 
   scale_x_continuous(name = "Predicted Life Expectancy", 
                      breaks = seq(2, 16, by=3)) + 
   scale_y_continuous(name = "Observed Life Expectancy", 
                      breaks = seq(2, 23, by=3)) + theme_bw() + 
-  geom_abline(slope = 1, intercept = 0) + scale_color_manual(values = c("darkred", "mediumpurple4", "grey74"), name = "Model") + theme(legend.position = "bottom") + coord_cartesian(ylim = c(2, 23), xlim = c(2,16))
+  geom_abline(slope = 1, intercept = 0) + theme(legend.position = "bottom") + coord_cartesian(ylim = c(2, 23), xlim = c(2,16)) + scale_linetype_manual(values = c("twodash", "longdash", "dotted"))
 
 myplot
 
