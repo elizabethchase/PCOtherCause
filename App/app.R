@@ -17,6 +17,7 @@ library(kableExtra)
 library(png)
 library(gridGraphics)
 library(pammtools)
+library(markdown)
 
 load("modobjects.RData")
 load("nhanes_data_clean.RData")
@@ -63,9 +64,9 @@ ui <- fluidPage(
                                "College graduate" = 5), selected = 3),
                     selectInput("pc_marital", 
                             "Marital Status", 
-                          choices = list("Married" = 1, 
-                             "Widowed, Divorced, or Separated" = 2, 
-                             "Never Married" = 3),
+                          choices = list("Married or living with partner" = 1, 
+                             "Widowed, divorced, or separated" = 2, 
+                             "Never married and no live-in partner" = 3),
                       selected = 1),
                     selectInput("pc_smoking", 
                         "Smoking Status", 
@@ -83,6 +84,9 @@ ui <- fluidPage(
                    br(),
                    br(),
                    br(),
+                   span(textOutput("marital_warn"),style="color:red"),
+                   br(),
+                   span(textOutput("education_warn"), style="color:red"),
                    tabsetPanel(
                      tabPanel(
                        "Summary",
@@ -167,14 +171,58 @@ server <- function(input, output) {
     
     #mydata <- mydata[mydata$inmodel4 == 1, ]
     
+    pc_dat_maxed <- pc_dat
+    pc_dat_maxed$educ <- "College graduate"
+    pc_dat_maxmar <- pc_dat
+    pc_dat_maxmar$marital2 <- "Married"
+    
     pc_prediction <- survfit(cox_40, pc_dat)
+    pc_prediction_maxed <- survfit(cox_40, pc_dat_maxed)
+    pc_prediction_maxmar <- survfit(cox_40, pc_dat_maxmar)
     
     inds <- which(pc_prediction$surv-0.5 <= 0)
+    inds_maxed <- which(pc_prediction_maxed$surv-0.5 <= 0)
+    inds_maxmar <- which(pc_prediction_maxmar$surv-0.5 <= 0)
+    
     time <- pc_prediction$time
     if (identical(inds, integer(0))){
       mytime <- 202
     } else{
       mytime <- time[min(inds)]
+    }
+    if (identical(inds_maxed, integer(0))){
+      mytime_maxed <- 202
+    } else{
+      mytime_maxed <- time[min(inds_maxed)]
+    }
+    if (identical(inds_maxmar, integer(0))){
+      mytime_maxmar <- 202
+    } else{
+      mytime_maxmar <- time[min(inds_maxmar)]
+    }
+    
+    if (mytime < 120 & mytime_maxmar >= 120){
+      mar_warn <- "This patient's life expectancy prediction would change from < 10 years
+                   to 10+ years based only on a change in marital status, which could be an
+                   unfair prediction. Marital status is predictive of mortality because of its
+                   relationship with caregiving support, nutrition, exercise, and routine medical
+                   care. Consider discussing whether the patient wants marital status to affect
+                   their prediction, and possibly reset marital status to Married if the patient 
+                   does not want their prediction affected by their marital status."
+    } else {
+      mar_warn <- ""
+    }
+    
+    if (mytime < 120 & mytime_maxed >= 120){
+      educ_warn <- "This patient's life expectancy prediction would change from < 10 years
+                   to 10+ years based only on a change in educational attainment, which could be an
+                   unfair prediction. Educational attainment is predictive of mortality because of its
+                   relationship with socioeconomic status, insurance coverage, and access to quality
+                   health care. Consider discussing whether the patient wants their educational
+                   attainment to affect their prediction, and possibly reset education to college 
+                   graduate if the patient does not want their prediction affected by their education."
+    } else {
+      educ_warn <- ""
     }
     
     pc_dat$medsurv <- mytime
@@ -218,8 +266,17 @@ server <- function(input, output) {
     
     mypred <- round(pcdat$Risk[which.min(ifelse((input$years*12-pcdat$Time) < 0, NA, (input$years*12-pcdat$Time)))]*100, digits=0)
     
-    list(alldat = pcdat, riskten = riskten, resultstab = resultstab, mypred = mypred, patient_char = pc_dat)
+    list(alldat = pcdat, riskten = riskten, resultstab = resultstab, mypred = mypred, 
+         patient_char = pc_dat, mar_warn = mar_warn, educ_warn = educ_warn)
   
+  })
+  
+  output$marital_warn <- renderText({
+    model()$mar_warn
+  })
+  
+  output$education_warn <- renderText({
+    model()$educ_warn
   })
   
   output$text1 <- renderText({

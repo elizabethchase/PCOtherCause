@@ -29,7 +29,7 @@ library(survminer)
 load("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nhanes_data_clean.RData")
 
 #We read in the clean version of the PLCO data, saved at the end of OCM_modelvalidation.Rmd:
-load("~/Box/PLCO Data/Prostate/plco_data_clean.RData")
+load("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/plco_data_clean.RData")
 ```
 
 Figure 1: STROBE diagram to construct National Health and Nutrition Examination Survey (NHANES) training data and Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO) validation data.
@@ -117,10 +117,11 @@ table_model <- summary(cox_40)$conf.int
 table_model[1, 1] <- exp(10*log(table_model[1, 1]))
 table_model[1, 3] <- exp(10*log(table_model[1, 3]))
 table_model[1, 4] <- exp(10*log(table_model[1, 4]))
+table_model[17:23, c(1, 3, 4)] <- exp(10*log(table_model[17:23, c(1, 3, 4)]))
 
-cox_plotdata <- data.frame("Variable" = c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Hypertension (ref: no hypertension)", "Separated (ref: married)", "Single (ref: married)", "Underweight, BMI <18.5 (ref: BMI 18.5-25)", "Overweight, BMI 25-40 (ref: BMI 18.5-25)", "Obese, BMI 40+ (ref: BMI 18.5-25)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)",  "Prostate cancer (ref: no prostate cancer)"), "Effect" = table_model[1:16,1], "Lower" = table_model[1:16,3], "Upper" = table_model[1:16,4], "Label" = paste(round(table_model[1:16,1], digits=2), " (", round(table_model[1:16,3], digits=2), ",", round(table_model[1:16,4], digits=2), ")", sep=""))
+cox_plotdata <- data.frame("Variable" = c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Hypertension (ref: no hypertension)", "Separated (ref: married)", "Single (ref: married)", "BMI <18.5 (ref: BMI 18.5-25)", "BMI 25-40 (ref: BMI 18.5-25)", "BMI 40+ (ref: BMI 18.5-25)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)",  "Prostate cancer (ref: no prostate cancer)", "Age (per 10 years)*Diabetes", "Age (per 10 years)*9th-11th Grade", "Age (per 10 years)*High School", "Age (per 10 years)*Some College", "Age (per 10 years)*College", "Age (per 10 years)*Hypertension", "Age (per 10 years)*Stroke"), "Effect" = table_model[,1], "Lower" = table_model[,3], "Upper" = table_model[,4], "Label" = paste(round(table_model[,1], digits=2), " (", round(table_model[,3], digits=2), ",", round(table_model[,4], digits=2), ")", sep=""))
 
-cox_plotdata$Variable <- factor(cox_plotdata$Variable, levels= c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Hypertension (ref: no hypertension)", "Separated (ref: married)", "Single (ref: married)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)", "Underweight, BMI <18.5 (ref: BMI 18.5-25)", "Overweight, BMI 25-40 (ref: BMI 18.5-25)", "Obese, BMI 40+ (ref: BMI 18.5-25)", "Prostate cancer (ref: no prostate cancer)"), ordered=TRUE)
+cox_plotdata$Variable <- factor(cox_plotdata$Variable, levels= c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "9th-11th Grade (ref: < 9th grade)", "High School (ref: < 9th grade)", "Some College (ref: < 9th grade)", "College (ref: < 9th grade)", "Hypertension (ref: no hypertension)", "Separated (ref: married)", "Single (ref: married)", "BMI <18.5 (ref: BMI 18.5-25)", "BMI 25-40 (ref: BMI 18.5-25)", "BMI 40+ (ref: BMI 18.5-25)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)",  "Prostate cancer (ref: no prostate cancer)", "Age (per 10 years)*Diabetes", "Age (per 10 years)*9th-11th Grade", "Age (per 10 years)*High School", "Age (per 10 years)*Some College", "Age (per 10 years)*College", "Age (per 10 years)*Hypertension", "Age (per 10 years)*Stroke"), ordered=TRUE)
 
 adj_plot <- ggplot(cox_plotdata, aes(fct_rev(Variable), log(Effect))) + geom_point() + geom_errorbar(aes(ymin=log(Lower), ymax=log(Upper), width=0.1)) + coord_flip(ylim=c(-2.0, 8)) + labs(x = "", caption=TeX('Protective $\\leftarrow \\rightarrow$ Harmful' )) + geom_hline(yintercept=0, linetype="dashed", color = "black") + theme(panel.background = element_rect(fill="white"), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), legend.position="bottom", plot.caption = element_text(hjust = 0.1), axis.title.x = element_text(margin = margin(r = 40)), axis.text.x.top = element_blank(), axis.ticks.x.top = element_blank(), axis.title.x.bottom = element_blank()) + geom_rect(fill="white", ymin=4.7, ymax=Inf, xmin=-Inf, xmax=Inf) + annotate(geom = 'text', label = cox_plotdata$Label, x = cox_plotdata$Variable, y = 2, hjust = 0, vjust = 0.5, color = "gray30", size = 12 * 5/14 * 0.8) + scale_y_continuous("HR (95% CI)", breaks=log(c(0.2, 0.5, 1, 2, 4)), labels=c("0.2", "0.5", "1", "2", "4"), position = 'right', sec.axis = dup_axis()) 
  
@@ -220,7 +221,7 @@ myplot <- ggplot(data=plco_clean) + geom_density(aes(x=medsurv, color = age_grp,
 
 \newpage
 Figure 4: Number of men receiving a particular treatment in a cohort of 7,596 men in the Prostate, Lung, Colon, and Ovarian Cancer Screening Trial (PLCO), grouped by NCCN prostate cancer risk group and predicted OCCAM life expectancy.
-```{r, fig.align="center", fig.height=4, fig.width=9, message=FALSE, warning=FALSE, echo=FALSE}
+```{r, fig.align="center", fig.height=4, fig.width=9, message=FALSE, warning=FALSE, echo=FALSE, eval = FALSE}
 #Figure 6: Treatment concordance with OCM predictions:
 prostatedata <- read_csv("~/Box/PLCO Data/Prostate/pros_data_nov18_d070819.csv.zip")
 cancer <- filter(prostatedata, pros_cancer == 1)
