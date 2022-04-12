@@ -1,6 +1,6 @@
 # PCOtherCause
 
-This repository houses the code used to built the OCCAM model described in
+This repository houses the code used to build the OCCAM model described in
 Chase et al. ([BJUI 2022](https://doi.org/10.1111/bju.15740)). It contains 3 main folders:
 
 - App: Code used to produce the OCCAM app at occam-cap.org
