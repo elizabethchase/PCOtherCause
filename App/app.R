@@ -61,12 +61,14 @@ ui <- fluidPage(
                                "9th-11th grade" = 2, 
                                "High school graduate" = 3,
                                "Some college" = 4,
-                               "College graduate" = 5), selected = 3),
+                               "College graduate" = 5,
+                               "Don't use my educational attainment in the model" = 6), selected = 3),
                     selectInput("pc_marital", 
-                            "Marital Status", 
+                            "Relationship Status", 
                           choices = list("Married or living with partner" = 1, 
                              "Widowed, divorced, or separated" = 2, 
-                             "Never married and no live-in partner" = 3),
+                             "Never married and no live-in partner" = 3,
+                             "Don't use my relationship status in the model" = 4),
                       selected = 1),
                     selectInput("pc_smoking", 
                         "Smoking Status", 
@@ -161,11 +163,25 @@ server <- function(input, output) {
     pc_dat$educ <- ifelse(input$pc_education == 1, "Less than 9th grade", 
                            ifelse(input$pc_education == 2, "9th-11th grade",
                                   ifelse(input$pc_education==3, "HS graduate",
-                                         ifelse(input$pc_education==4, "Some college", "College graduate"))))
+                                         ifelse(input$pc_education==4, "Some college", 
+                                                ifelse(input$pc_education==5, "College graduate", NA_character_)))))
+    if (input$pc_education==6){
+      no_educ <- TRUE
+    } else{
+      no_educ <- FALSE
+    }
+    
     pc_dat$hypertension <- ifelse(2 %in% input$pc_comorbidities, "Yes", "No")
     pc_dat$marital2 <- ifelse(input$pc_marital == 1, "Married", 
                                ifelse(input$pc_marital == 2, "Separated",
-                                      "Single"))
+                                      ifelse(input$pc_marital == 3, "Single", NA_character_)))
+    
+    if (input$pc_marital==4){
+      no_mar <- TRUE
+    } else{
+      no_mar <- FALSE
+    } 
+    
     pc_dat$smoker <- ifelse(input$pc_smoking == 1, "Never", ifelse(input$pc_smoking== 2, "Current", "Former"))
     pc_dat$stroke <- ifelse(3 %in% input$pc_comorbidities, "Yes", "No")
     
@@ -176,54 +192,133 @@ server <- function(input, output) {
     pc_dat_maxmar <- pc_dat
     pc_dat_maxmar$marital2 <- "Married"
     
-    pc_prediction <- survfit(cox_40, pc_dat)
-    pc_prediction_maxed <- survfit(cox_40, pc_dat_maxed)
-    pc_prediction_maxmar <- survfit(cox_40, pc_dat_maxmar)
-    
-    inds <- which(pc_prediction$surv-0.5 <= 0)
-    inds_maxed <- which(pc_prediction_maxed$surv-0.5 <= 0)
-    inds_maxmar <- which(pc_prediction_maxmar$surv-0.5 <= 0)
-    
-    time <- pc_prediction$time
-    if (identical(inds, integer(0))){
-      mytime <- 202
-    } else{
-      mytime <- time[min(inds)]
-    }
-    if (identical(inds_maxed, integer(0))){
-      mytime_maxed <- 202
-    } else{
-      mytime_maxed <- time[min(inds_maxed)]
-    }
-    if (identical(inds_maxmar, integer(0))){
-      mytime_maxmar <- 202
-    } else{
-      mytime_maxmar <- time[min(inds_maxmar)]
-    }
-    
-    if (mytime < 120 & mytime_maxmar >= 120){
-      mar_warn <- "This patient's life expectancy prediction would change from < 10 years
-                   to 10+ years based only on a change in marital status, which could be an
-                   unfair prediction. Marital status is predictive of mortality because of its
+    if (!no_mar & !no_educ){
+      pc_prediction <- survfit(cox_40, pc_dat)
+      pc_prediction_maxed <- survfit(cox_40, pc_dat_maxed)
+      pc_prediction_maxmar <- survfit(cox_40, pc_dat_maxmar)
+      
+      inds <- which(pc_prediction$surv-0.5 <= 0)
+      inds_maxed <- which(pc_prediction_maxed$surv-0.5 <= 0)
+      inds_maxmar <- which(pc_prediction_maxmar$surv-0.5 <= 0)
+      
+      time <- pc_prediction$time
+      if (identical(inds, integer(0))){
+        mytime <- 202
+      } else{
+        mytime <- time[min(inds)]
+      }
+      if (identical(inds_maxed, integer(0))){
+        mytime_maxed <- 202
+      } else{
+        mytime_maxed <- time[min(inds_maxed)]
+      }
+      if (identical(inds_maxmar, integer(0))){
+        mytime_maxmar <- 202
+      } else{
+        mytime_maxmar <- time[min(inds_maxmar)]
+      }
+      
+      if (mytime < 120 & mytime_maxmar >= 120){
+        mar_warn <- "This patient's life expectancy prediction would change from < 10 years
+                   to 10+ years based only on a change in relationship status, which could be an
+                   unfair prediction. Relationship status is predictive of mortality because of its
                    relationship with caregiving support, nutrition, exercise, and routine medical
-                   care. Consider discussing whether the patient wants marital status to affect
-                   their prediction, and possibly reset marital status to Married if the patient 
-                   does not want their prediction affected by their marital status."
-    } else {
-      mar_warn <- ""
-    }
-    
-    if (mytime < 120 & mytime_maxed >= 120){
-      educ_warn <- "This patient's life expectancy prediction would change from < 10 years
+                   care. Consider discussing whether the patient wants relationship status to affect
+                   their prediction, and possibly use the 'Don't use my relationship status in the model' 
+                   option instead."
+      } else {
+        mar_warn <- ""
+      }
+      
+      if (mytime < 120 & mytime_maxed >= 120){
+        educ_warn <- "This patient's life expectancy prediction would change from < 10 years
                    to 10+ years based only on a change in educational attainment, which could be an
                    unfair prediction. Educational attainment is predictive of mortality because of its
                    relationship with socioeconomic status, insurance coverage, and access to quality
                    health care. Consider discussing whether the patient wants their educational
-                   attainment to affect their prediction, and possibly reset education to college 
-                   graduate if the patient does not want their prediction affected by their education."
-    } else {
+                   attainment to affect their prediction, and possibly use the 'Don't use my educational
+                   attainment in the model' option instead."
+      } else {
+        educ_warn <- ""
+      }
+    } else if (!no_mar & no_educ){
+      pc_prediction <- survfit(cox_noeduc, pc_dat)
+      pc_prediction_maxmar <- survfit(cox_noeduc, pc_dat_maxmar)
+      
+      inds <- which(pc_prediction$surv-0.5 <= 0)
+      inds_maxmar <- which(pc_prediction_maxmar$surv-0.5 <= 0)
+      
+      time <- pc_prediction$time
+      if (identical(inds, integer(0))){
+        mytime <- 202
+      } else{
+        mytime <- time[min(inds)]
+      }
+      if (identical(inds_maxmar, integer(0))){
+        mytime_maxmar <- 202
+      } else{
+        mytime_maxmar <- time[min(inds_maxmar)]
+      }
+      
+      if (mytime < 120 & mytime_maxmar >= 120){
+        mar_warn <- "This patient's life expectancy prediction would change from < 10 years
+                   to 10+ years based only on a change in relationship status, which could be an
+                   unfair prediction. Relationship status is predictive of mortality because of its
+                   relationship with caregiving support, nutrition, exercise, and routine medical
+                   care. Consider discussing whether the patient wants relationship status to affect
+                   their prediction, and possibly use the 'Don't use my relationship status in the model' 
+                   option instead."
+      } else {
+        mar_warn <- ""
+      }
       educ_warn <- ""
-    }
+    } else if (no_mar & !no_educ){
+      pc_prediction <- survfit(cox_nomar, pc_dat)
+      pc_prediction_maxed <- survfit(cox_nomar, pc_dat_maxed)
+      
+      inds <- which(pc_prediction$surv-0.5 <= 0)
+      inds_maxed <- which(pc_prediction_maxed$surv-0.5 <= 0)
+      
+      time <- pc_prediction$time
+      if (identical(inds, integer(0))){
+        mytime <- 202
+      } else{
+        mytime <- time[min(inds)]
+      }
+      if (identical(inds_maxed, integer(0))){
+        mytime_maxed <- 202
+      } else{
+        mytime_maxed <- time[min(inds_maxed)]
+      }
+      
+      mar_warn <- ""
+    
+      if (mytime < 120 & mytime_maxed >= 120){
+        educ_warn <- "This patient's life expectancy prediction would change from < 10 years
+                   to 10+ years based only on a change in educational attainment, which could be an
+                   unfair prediction. Educational attainment is predictive of mortality because of its
+                   relationship with socioeconomic status, insurance coverage, and access to quality
+                   health care. Consider discussing whether the patient wants their educational
+                   attainment to affect their prediction, and possibly use the 'Don't use my educational
+                   attainment in the model' option instead."
+      } else {
+        educ_warn <- ""
+      }
+    } else if (no_mar & no_educ){
+      pc_prediction <- survfit(cox_red, pc_dat)
+    
+      inds <- which(pc_prediction$surv-0.5 <= 0)
+      
+      time <- pc_prediction$time
+      if (identical(inds, integer(0))){
+        mytime <- 202
+      } else{
+        mytime <- time[min(inds)]
+      }
+      
+      mar_warn <- ""
+      educ_warn <- ""
+    } 
     
     pc_dat$medsurv <- mytime
     pc_dat$medsurv2 <- ifelse(pc_dat$medsurv>=180, ">15 years", paste0(round(pc_dat$medsurv/12, digits=0), " years"))
@@ -233,16 +328,18 @@ server <- function(input, output) {
     pc_dat$diabstat <- ifelse(pc_dat$diabetic=="Yes", "with diabetes", "without diabetes")
     pc_dat$hyperstat <- ifelse(pc_dat$hypertension=="Yes", "hypertensive", "non-hypertensive")
     pc_dat$educstat <- case_when(
-      pc_dat$educ=="Less than 9th grade" ~ "less than 9th grade",
-      pc_dat$educ=="9th-11th grade" ~ "9th-11th grade",
-      pc_dat$educ=="HS graduate" ~ "high school diploma/GED",
-      pc_dat$educ=="Some college" ~ "some college",
-      pc_dat$educ=="College graduate" ~ "college degree"
+      pc_dat$educ=="Less than 9th grade" ~ "of less than 9th grade",
+      pc_dat$educ=="9th-11th grade" ~ "of 9th-11th grade",
+      pc_dat$educ=="HS graduate" ~ "of high school diploma/GED",
+      pc_dat$educ=="Some college" ~ "of some college",
+      pc_dat$educ=="College graduate" ~ "of college degree",
+      no_educ ~ "not provided"
     )
     pc_dat$marstat <- case_when(
-      pc_dat$marital2=="Single" ~ "never married",
-      pc_dat$marital2=="Married" ~ "married",
-      pc_dat$marital2=="Separated" ~ "formerly married"
+      pc_dat$marital2=="Single" ~ "of never married/in a live-in relationship",
+      pc_dat$marital2=="Married" ~ "of currently married/in a live-in relationship",
+      pc_dat$marital2=="Separated" ~ "of formerly married/in a live-in relationship",
+      no_mar ~ "not provided"
     )
     pc_dat$smokstat <- case_when(
       pc_dat$smoker=="Never" ~ "never",
@@ -281,8 +378,8 @@ server <- function(input, output) {
   
   output$text1 <- renderText({
     paste0("This is a ", model()$patient_char$age, " year old ", model()$patient_char$hyperstat, " man with BMI ", round(model()$patient_char$bmi, digits = 1), ", ", model()$patient_char$strokestat,
-           " and ", model()$patient_char$diabstat, ". He is currently ", model()$patient_char$marstat,
-           " and a ", model()$patient_char$smokstat, " smoker, with educational attainment of ", model()$patient_char$educstat, ".")
+           " and ", model()$patient_char$diabstat, ". He is a ", model()$patient_char$smokstat, " smoker, with relationship status ", model()$patient_char$marstat, 
+           " and educational attainment ", model()$patient_char$educstat, ".")
   })
 
   output$text2 <- renderText({

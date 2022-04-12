@@ -31,6 +31,7 @@ load("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/nhanes
 #We read in the clean version of the PLCO data, saved at the end of OCM_modelvalidation.Rmd:
 load("/Users/ecchase/Desktop/Research/Matt Prostate OCM/PCOtherCause/Data/plco_data_clean.RData")
 
+#Creating models for export for app:
 cox_40 <-
   coxph(
     Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + educ + hypertension + 
@@ -41,6 +42,41 @@ cox_40 <-
     x = TRUE,
     y = TRUE
   )
+
+cox_nomar <-
+  coxph(
+    Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + educ + hypertension + 
+      underweight + overweight2 + obese2 + smoker + stroke + 
+      age_ctr_40 * diabetic + age_ctr_40 * educ + age_ctr_40 * hypertension + 
+      age_ctr_40 * stroke + pc,
+    data = mydata[mydata$inmodel4 == 1, ],
+    x = TRUE,
+    y = TRUE
+  )
+
+cox_noeduc <-
+  coxph(
+    Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + hypertension + 
+      marital2 + underweight + overweight2 + obese2 + smoker + stroke + 
+      age_ctr_40 * diabetic + age_ctr_40 * hypertension + 
+      age_ctr_40 * stroke + pc,
+    data = mydata[mydata$inmodel4 == 1, ],
+    x = TRUE,
+    y = TRUE
+  )
+
+cox_red <-
+  coxph(
+    Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + hypertension + 
+      underweight + overweight2 + obese2 + smoker + stroke + 
+      age_ctr_40 * diabetic + age_ctr_40 * hypertension + 
+      age_ctr_40 * stroke + pc,
+    data = mydata[mydata$inmodel4 == 1, ],
+    x = TRUE,
+    y = TRUE
+  )
+
+#save(list=c("cox_40", "cox_nomar", "cox_noeduc", "cox_red"), file = "modobjects.RData")
 
 nhanes_svy <-
   svydesign(
@@ -1174,9 +1210,336 @@ length(which(plco_clean$educ_diff > 0))/length(plco_clean$educ_diff)
 length(which(plco_clean$mar_diff > 0))/length(plco_clean$mar_diff)
 ```
 
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+cox_red <-
+  coxph(
+    Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + hypertension + 
+      underweight + overweight2 + obese2 + smoker + stroke + 
+      age_ctr_40 * diabetic + age_ctr_40 * hypertension + 
+      age_ctr_40 * stroke + pc,
+    data = mydata[mydata$inmodel4 == 1, ],
+    x = TRUE,
+    y = TRUE
+  )
 
+table_model <- summary(cox_red)$conf.int
+table_model[1, c(1, 3, 4)] <- exp(10*log(table_model[1, c(1, 3, 4)]))
+table_model[11:13, c(1, 3, 4)] <- exp(10*log(table_model[11:13, c(1, 3, 4)]))
 
+nhanes_svy <-
+  svydesign(
+    data = mydata,
+    id =  ~ psu,
+    strata =  ~ strata,
+    weights =  ~ sweights,
+    nest = TRUE
+  )
+nhanes_sub4 <- subset(nhanes_svy, inmodel4 == 1)
 
+cox_red_wt <-
+  svycoxph(
+    Surv(permth_exm, mortstat) ~ age_ctr_40 + diabetic + hypertension + 
+      underweight + overweight2 + obese2 + smoker + stroke + 
+      age_ctr_40 * diabetic + age_ctr_40 * hypertension + 
+      age_ctr_40 * stroke + pc,
+    design = nhanes_sub4)
 
+table_model_wt <- summary(cox_red_wt)$conf.int
+table_model_wt[1, c(1, 3, 4)] <- exp(10*log(table_model_wt[1, c(1, 3, 4)]))
+table_model_wt[11:13, c(1, 3, 4)] <- exp(10*log(table_model_wt[11:13, c(1, 3, 4)]))
 
+cox_plotdata <- data.frame("Variable" = c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "Hypertension (ref: no hypertension)", "BMI <18.5 (ref: BMI 18.5-25)", "BMI 25-40 (ref: BMI 18.5-25)", "BMI 40+ (ref: BMI 18.5-25)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)",  "Prostate cancer (ref: no prostate cancer)", "Age (per 10 years)*Diabetes", "Age (per 10 years)*Hypertension", "Age (per 10 years)*Stroke"), "Effect" = c(table_model[,1], table_model_wt[,1]), "Lower" = c(table_model[,3], table_model_wt[,3]), "Upper" = c(table_model[,4], table_model_wt[,4]), "Label" = c(paste(round(table_model[,1], digits=2), " (", round(table_model[,3], digits=2), ",", round(table_model[,4], digits=2), ")", sep=""), paste(round(table_model_wt[,1], digits=2), " (", round(table_model_wt[,3], digits=2), ",", round(table_model_wt[,4], digits=2), ")", sep="")), "Model" = c(rep("Unweighted", 13), rep("Weighted", 13)))
 
+cox_plotdata$Variable <- factor(cox_plotdata$Variable, levels= c("Age (per 10 years)", "Diabetes (ref: no diabetes)", "Hypertension (ref: no hypertension)", "BMI <18.5 (ref: BMI 18.5-25)", "BMI 25-40 (ref: BMI 18.5-25)", "BMI 40+ (ref: BMI 18.5-25)", "Current smoker (ref: never smoker)", "Former smoker (ref: never smoker)", "Stroke (ref: no stroke)",  "Prostate cancer (ref: no prostate cancer)", "Age (per 10 years)*Diabetes", "Age (per 10 years)*Hypertension", "Age (per 10 years)*Stroke"), ordered=TRUE)
+
+adj_plot <- ggplot(cox_plotdata, aes(x = fct_rev(Variable), y = log(Effect), group = Model, color = Model)) + geom_point(position = position_dodge(width = 0.5)) + geom_errorbar(aes(ymin=log(Lower), ymax=log(Upper), width=0.1), position = position_dodge(width = 0.5)) + coord_flip() + labs(y = "Hazard Ratio and 95% CI", x = "", caption=TeX('Protective $\\leftarrow \\rightarrow$ Harmful' )) + geom_hline(yintercept=0, linetype="dashed", color = "black") + theme(panel.background = element_rect(fill="white"), panel.grid.major = element_blank(), panel.grid.minor=element_blank(), legend.position="bottom", plot.caption = element_text(hjust = 0.3)) + scale_y_continuous(breaks=log(c(0.25, 0.5, 1, 2, 4)), labels=c("0.25", "0.5", "1.0", "2.0", "4.0")) + scale_color_manual(values = c("mediumpurple4", "gray74"))
+ 
+adj_plot
+
+ggsave("forest_plot_reduced.pdf", adj_plot)
+rm(list=c("adj_plot", "cox_plotdata", "table_model"))
+```
+
+How much do predictions change when marital status and educational attainment are omitted from the model entirely? First, for NHANES:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+true_predictions <- survfit(cox_40, mydata[mydata$inmodel4==1,])
+nomareduc_predictions <- survfit(cox_red, mydata[mydata$inmodel4==1,])
+
+medsurv_true <- apply(X = true_predictions$surv, MARGIN = 2, FUN = myfunc, time = true_predictions$time)
+medsurv2_true <- data.frame(medsurv_true)
+
+medsurv_nomareduc <- apply(X = nomareduc_predictions$surv, MARGIN = 2, FUN = myfunc, time = nomareduc_predictions$time)
+medsurv2_nomareduc <- data.frame(medsurv_nomareduc)
+
+mydata$true[mydata$inmodel4==1] <- medsurv2_true$medsurv_true
+mydata$nomareduc[mydata$inmodel4==1] <- medsurv2_nomareduc$medsurv_nomareduc
+
+mydata$mareduc_diff <- mydata$nomareduc-mydata$true
+mydata$mareduc_prob_inc <- as.numeric(mydata$true < 120 & mydata$nomareduc >= 120)
+mydata$mareduc_prob_dec <- as.numeric(mydata$true >= 120 & mydata$nomareduc < 120)
+
+quantile(mydata$mareduc_diff[mydata$inmodel4==1])
+
+length(which(mydata$mareduc_prob_inc[mydata$inmodel4==1]==1))/length(mydata$mareduc_prob_inc[mydata$inmodel4==1])
+length(which(mydata$mareduc_prob_dec[mydata$inmodel4==1]==1))/length(mydata$mareduc_prob_dec[mydata$inmodel4==1])
+
+length(which(mydata$mareduc_diff[mydata$inmodel4==1] > 0))/length(mydata$mareduc_diff[mydata$inmodel4==1])
+length(which(mydata$mareduc_diff[mydata$inmodel4==1] < 0))/length(mydata$mareduc_diff[mydata$inmodel4==1])
+```
+
+Calibration plot for 10- and 15-year probability of OCM:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+cutTime <- 15*12   #14 yr cutoff point
+
+km_predictions <- survfit(cox_40, plco_clean)
+
+predict_10 <- 1-km_predictions$surv[km_predictions$time==120,]
+predict_15 <- 1-km_predictions$surv[km_predictions$time==180,]
+
+group_10 <- case_when(
+  predict_10 < 0.2 ~ 0.1,
+  predict_10 >= 0.2 & predict_10 < 0.4 ~ 0.3,
+  predict_10 >= 0.4 & predict_10 < 0.6 ~ 0.5,
+  predict_10 >= 0.6 & predict_10 < 0.8 ~ 0.7,
+  predict_10 >= 0.8 ~ 0.9
+)
+
+group_15 <- case_when(
+  predict_15 < 0.2 ~ 0.1,
+  predict_15 >= 0.2 & predict_15 < 0.4 ~ 0.3,
+  predict_15 >= 0.4 & predict_15 < 0.6 ~ 0.5,
+  predict_15 >= 0.6 & predict_15 < 0.8 ~ 0.7,
+  predict_15 >= 0.8 ~ 0.9
+)
+
+km_10_01 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.1,])
+km_10_03 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.3,])
+km_10_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.5,])
+km_10_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.7,])
+km_10_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_10==0.9,])
+km_15_01 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_15==0.1,])
+km_15_03 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_15==0.3,])
+km_15_05 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_15==0.5,])
+km_15_07 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_15==0.7,])
+km_15_09 <- survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[group_15==0.9,])
+
+calibration10_data <- data.frame("Year" = rep("10 Years", 5), 
+                                 "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
+                                 "Est" = c(1-km_10_01$surv[km_10_01$time==120], 
+                                           1-km_10_03$surv[km_10_03$time==120], 
+                                           1-km_10_05$surv[km_10_05$time==120], 
+                                           1-km_10_07$surv[km_10_07$time==120], 
+                                           1-km_10_09$surv[km_10_09$time==118]), 
+                                "Lower" = c(1-km_10_01$lower[km_10_01$time==120],
+                                         1-km_10_03$lower[km_10_03$time==120],
+                                         1-km_10_05$lower[km_10_05$time==120], 
+                                          1-km_10_07$lower[km_10_07$time==120], 
+                                          1-km_10_09$lower[km_10_09$time==118]),
+                                "Upper" = c(1-km_10_01$upper[km_10_01$time==120],
+                                         1-km_10_03$upper[km_10_03$time==120],
+                                         1-km_10_05$upper[km_10_05$time==120], 
+                                          1-km_10_07$upper[km_10_07$time==120], 
+                                          1-km_10_09$upper[km_10_09$time==118]))
+
+calibration15_data <- data.frame("Year" = rep("15 Years", 5), 
+                                 "Group" = c(0.1, 0.3, 0.5, 0.7, 0.9), 
+                                 "Est" = c(1-km_15_01$surv[km_15_01$time==180], 
+                                           1-km_15_03$surv[km_15_03$time==180], 
+                                           1-km_15_05$surv[km_15_05$time==180], 
+                                           1-km_15_07$surv[km_15_07$time==180], 
+                                           1-km_15_09$surv[km_15_09$time==179]), 
+                                "Lower" = c(1-km_15_01$lower[km_15_01$time==180],
+                                         1-km_15_03$lower[km_15_03$time==180],
+                                         1-km_15_05$lower[km_15_05$time==180], 
+                                          1-km_15_07$lower[km_15_07$time==180], 
+                                          1-km_15_09$lower[km_15_09$time==179]),
+                                "Upper" = c(1-km_15_01$upper[km_15_01$time==180],
+                                         1-km_15_03$upper[km_15_03$time==180],
+                                         1-km_15_05$upper[km_15_05$time==180], 
+                                          1-km_15_07$upper[km_15_07$time==180], 
+                                          1-km_15_09$upper[km_15_09$time==179]))
+
+calibrationdat_total <- rbind(calibration10_data, calibration15_data)
+
+myplot <- ggplot() + geom_errorbar(data = calibrationdat_total, aes(x = Group, ymin = Lower, 
+                                              ymax = Upper, width = 0.05), color = "mediumpurple4") + 
+  scale_x_continuous(name = "Predicted Risk of OCM",limits = c(0, 1), 
+                                                   breaks = seq(0, 1, by=0.2)) + 
+  scale_y_continuous(name = "Observed Risk of OCM", limits = c(0, 1), 
+                     breaks = seq(0, 1.2, by=0.2)) + theme_bw() + 
+  geom_abline(slope = 1, intercept = 0) + facet_wrap(~Year)
+
+myplot
+
+ggsave(filename = "calibration_plot_risk.pdf", myplot, height = 4, width = 10)
+```
+
+And time-dependent AUC's across sensitive groups:
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+#And now we obtain estimates of the C-index and time-dependent AUC from our model in the main treatment groups: prostatectomy, radiation, and radiation + hormone:
+times <- seq(60, 180, by=60)
+
+cox40predict_white <- predict(object=cox_40, newdata = plco_clean[plco_clean$race2=="NHW",], type="lp")
+cox40predict_black <- predict(object=cox_40, newdata = plco_clean[plco_clean$race2=="NHB",], type="lp")
+cox40predict_other <- predict(object=cox_40, newdata = plco_clean[plco_clean$race2=="Other",], type="lp")
+
+white_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$race2=="NHW"], delta = plco_clean$mortstat[plco_clean$race2=="NHW"], marker = cox40predict_white, cause = 1, weighting="marginal", times = times)
+
+black_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$race2=="NHB"], delta = plco_clean$mortstat[plco_clean$race2=="NHB"], marker = cox40predict_black, cause = 1, weighting="marginal", times = times)
+
+other_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$race2=="Other"], delta = plco_clean$mortstat[plco_clean$race2=="Other"], marker = cox40predict_other, cause = 1, weighting="marginal", times = times)
+
+subperf_race <- data.frame("Race" = c("Non-Hispanic Black", "Non-Hispanic White", "Other"), "Year5" = round(c(black_roc_css$AUC[1], white_roc_css$AUC[1], other_roc_css$AUC[1]), digits=2), "Year10" = round(c(black_roc_css$AUC[2], white_roc_css$AUC[2],other_roc_css$AUC[2]), digits=2), "Year15" = round(c(black_roc_css$AUC[3], white_roc_css$AUC[2], other_roc_css$AUC[3]), digits=2))
+
+rownames(subperf_race) <- NULL
+
+cox40predict_married <- predict(object=cox_40, newdata = plco_clean[plco_clean$marital2=="Married",], type="lp")
+cox40predict_single <- predict(object=cox_40, newdata = plco_clean[plco_clean$marital2=="Single",], type="lp")
+cox40predict_sep <- predict(object=cox_40, newdata = plco_clean[plco_clean$marital2=="Separated",], type="lp")
+
+married_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$marital2=="Married"], delta = plco_clean$mortstat[plco_clean$marital2=="Married"], marker = cox40predict_married, cause = 1, weighting="marginal", times = times)
+
+single_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$marital2=="Single"], delta = plco_clean$mortstat[plco_clean$marital2=="Single"], marker = cox40predict_single, cause = 1, weighting="marginal", times = times)
+
+sep_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$marital2=="Separated"], delta = plco_clean$mortstat[plco_clean$marital2=="Separated"], marker = cox40predict_sep, cause = 1, weighting="marginal", times = times)
+
+subperf_marital <- data.frame("MaritalStat" = c("In Relationship", "Single", "Separated"), "Year5" = round(c(married_roc_css$AUC[1], single_roc_css$AUC[1], sep_roc_css$AUC[1]), digits=2), "Year10" = round(c(married_roc_css$AUC[2], single_roc_css$AUC[2],sep_roc_css$AUC[2]), digits=2), "Year15" = round(c(married_roc_css$AUC[3], single_roc_css$AUC[2], sep_roc_css$AUC[3]), digits=2))
+
+rownames(subperf_marital) <- NULL
+
+cox40predict_9 <- predict(object=cox_40, newdata = plco_clean[plco_clean$educ=="Less than 9th grade",], type="lp")
+cox40predict_9_11 <- predict(object=cox_40, newdata = plco_clean[plco_clean$educ=="9th-11th grade",], type="lp")
+cox40predict_hs <- predict(object=cox_40, newdata = plco_clean[plco_clean$educ=="HS graduate",], type="lp")
+cox40predict_some <- predict(object=cox_40, newdata = plco_clean[plco_clean$educ=="Some college",], type="lp")
+cox40predict_college <- predict(object=cox_40, newdata = plco_clean[plco_clean$educ=="College graduate",], type="lp")
+
+nine_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$educ=="Less than 9th grade"], delta = plco_clean$mortstat[plco_clean$educ=="Less than 9th grade"], marker = cox40predict_9, cause = 1, weighting="marginal", times = times)
+
+nine_eleven_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$educ=="9th-11th grade"], delta = plco_clean$mortstat[plco_clean$educ=="9th-11th grade"], marker = cox40predict_9_11, cause = 1, weighting="marginal", times = times)
+
+hs_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$educ=="HS graduate"], delta = plco_clean$mortstat[plco_clean$educ=="HS graduate"], marker = cox40predict_hs, cause = 1, weighting="marginal", times = times)
+
+some_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$educ=="Some college"], delta = plco_clean$mortstat[plco_clean$educ=="Some college"], marker = cox40predict_some, cause = 1, weighting="marginal", times = times)
+
+college_roc_css <- timeROC(T = plco_clean$permth_exm[plco_clean$educ=="College graduate"], delta = plco_clean$mortstat[plco_clean$educ=="College graduate"], marker = cox40predict_college, cause = 1, weighting="marginal", times = times)
+
+subperf_educ <- data.frame("Education" = c("Less than 9th grade", "9th-11th grade", "HS graduate", "Some college", "College graduate"), "Year5" = round(c(nine_roc_css$AUC[1], nine_eleven_roc_css$AUC[1], hs_roc_css$AUC[1], some_roc_css$AUC[1], college_roc_css$AUC[1]), digits=2), "Year10" = round(c(nine_roc_css$AUC[2], nine_eleven_roc_css$AUC[2], hs_roc_css$AUC[2], some_roc_css$AUC[2], college_roc_css$AUC[2]), digits=2), "Year15" = round(c(nine_roc_css$AUC[3], nine_eleven_roc_css$AUC[3], hs_roc_css$AUC[3], some_roc_css$AUC[3], college_roc_css$AUC[3]), digits=2))
+
+rownames(subperf_educ) <- NULL
+
+kable(subperf_race, col.names = c("Race", "5 Years", "10 Years", "15 Years")) %>%
+ column_spec(column = 1, width = "5cm") %>% column_spec(column = 2:4, width = "1.75cm")
+
+kable(subperf_marital, col.names = c("Relationship Status", "5 Years", "10 Years", "15 Years")) %>%
+ column_spec(column = 1, width = "5cm") %>% column_spec(column = 2:4, width = "1.75cm")
+
+kable(subperf_educ, col.names = c("Educational Attainment", "5 Years", "10 Years", "15 Years")) %>%
+ column_spec(column = 1, width = "5cm") %>% column_spec(column = 2:4, width = "1.75cm")
+```
+
+\newpage
+
+```{r, fig.align="center", fig.height=4, fig.width=6, message=FALSE, warning=FALSE, echo=FALSE}
+plco_clean <- filter(plco_clean, race2=="Other")
+km_predictions <- survfit(cox_40, plco_clean)
+myfunc <- function(x, time){
+  inds <- which(x-0.5 <= 0)
+  if (identical(inds, integer(0))){
+    mytime <- 202
+  } else{
+    mytime <- time[min(inds)]
+  }
+  return(mytime)
+}
+medsurv <- apply(X = km_predictions$surv, MARGIN = 2, FUN = myfunc, time = km_predictions$time)
+medsurv2 <- data.frame(medsurv)
+
+plco_clean$medsurv <- medsurv2$medsurv
+
+cox_group <- case_when(
+  plco_clean$medsurv < 60 ~ 2.5,
+  plco_clean$medsurv >= 60 & plco_clean$medsurv < 84 ~ 6,
+  plco_clean$medsurv >= 84 & plco_clean$medsurv < 120 ~ 8.5,
+  plco_clean$medsurv >= 120 & plco_clean$medsurv < 144 ~ 11,
+  plco_clean$medsurv >= 144 & plco_clean$medsurv < 180 ~ 13.5,
+  plco_clean$medsurv >= 180 ~ 15
+)
+
+ssa_group <- case_when(
+  plco_clean$ssa < 5 ~ 2.5,
+  plco_clean$ssa >= 5 & plco_clean$ssa < 7 ~ 6,
+  plco_clean$ssa >= 7 & plco_clean$ssa < 10 ~ 8.5,
+  plco_clean$ssa >= 10 & plco_clean$ssa < 12 ~ 11,
+  plco_clean$ssa >= 12 & plco_clean$ssa < 15 ~ 13.5,
+  plco_clean$ssa >= 15 ~ 15
+)
+
+cox_5 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==2.5,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==2.5,])$time))
+#ssa_5 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==2.5,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==2.5,])$time))
+cox_7 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==6,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==6,])$time))
+ssa_7 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==6,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==6,])$time))
+cox_10 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==8.5,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==8.5,])$time))
+ssa_10 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==8.5,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==8.5,])$time))
+cox_12 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==11,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==11,])$time))
+ssa_12 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==11,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==11,])$time))
+cox_15 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==13.5,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==13.5,])$time))
+ssa_15 <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==13.5,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==13.5,])$time))
+cox_15p <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==15,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==15,])$time))
+ssa_15p <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==15,])$surv, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==15,])$time))
+
+cox_5l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==2.5,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==2.5,])$time))
+#ssa_5l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==2.5,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==2.5,])$time))
+cox_7l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==6,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==6,])$time))
+ssa_7l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==6,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==6,])$time))
+cox_10l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==8.5,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==8.5,])$time))
+ssa_10l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==8.5,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==8.5,])$time))
+cox_12l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==11,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==11,])$time))
+ssa_12l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==11,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==11,])$time))
+cox_15l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==13.5,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==13.5,])$time))
+ssa_15l <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==13.5,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==13.5,])$time))
+cox_15pl <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==15,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==15,])$time))
+ssa_15pl <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==15,])$lower, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==15,])$time))
+
+cox_5u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==2.5,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==2.5,])$time))
+#ssa_5u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==2.5,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==2.5,])$time))
+cox_7u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==6,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==6,])$time))
+ssa_7u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==6,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==6,])$time))
+cox_10u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==8.5,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==8.5,])$time))
+ssa_10u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==8.5,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==8.5,])$time))
+cox_12u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==11,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==11,])$time))
+ssa_12u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==11,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==11,])$time))
+cox_15u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==13.5,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==13.5,])$time))
+ssa_15u <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==13.5,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==13.5,])$time))
+cox_15pu <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==15,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[cox_group==15,])$time))
+ssa_15pu <- data.frame(myfunc(x = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==15,])$upper, time = survfit(Surv(permth_exm, mortstat) ~ 1, data = plco_clean[ssa_group==15,])$time))
+
+calibration_data <- data.frame("Time" = rep(c(2.5, 6, 8.5, 11, 13.5, 15), 2), "Model" = c(rep("OCCAM", 6), rep("SSA", 6)), "Observed" = c(cox_5$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_7$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_10$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_12$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_15$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_15p$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., NA, ssa_7$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_10$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_12$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_15$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_15p$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group....)/12, "Lower" = c(cox_5l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_7l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_10l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_12l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_15l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_15pl$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., NA, ssa_7l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_10l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_12l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_15l$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_15pl$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group....)/12, "Upper" = c(cox_5u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_7u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_10u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_12u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_15u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., cox_15pu$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.cox_group...., NA, ssa_7u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_10u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_12u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_15u$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group...., ssa_15pu$myfunc.x...survfit.Surv.permth_exm..mortstat....1..data...plco_clean.ssa_group....)/12)
+
+calibration_data[calibration_data==202/12] <- 25
+
+#myplot <- ggplot() + geom_line(data = calibration_data, aes(x=Time, y=Observed, 
+                  #                                              group = Model, 
+                #                                                color = Model)) +
+ # geom_errorbar(data = calibration_data, aes(x = Time, ymin = Lower, ymax = Upper, group = Model, color = Model, width = 0.5)) + 
+#  scale_x_continuous(name = "Predicted Life Expectancy", 
+#                     breaks = seq(2, 16, by=3)) + 
+#  scale_y_continuous(name = "Observed Life Expectancy", 
+#                     breaks = seq(2, 23, by=3)) + theme_bw() + 
+ # geom_abline(slope = 1, intercept = 0) + scale_color_manual(values = c("darkred", "mediumpurple4", "grey74"), name = "Model") + theme(legend.position = "bottom") + coord_cartesian(ylim = c(2, 23), xlim = c(2,16))
+
+calibration_data$Time[calibration_data$Model=="OCCAM"] <- calibration_data$Time[calibration_data$Model=="OCCAM"] + 0.2
+
+myplot <- ggplot() + geom_line(data = calibration_data, aes(x=Time, y=Observed, 
+                                                                group = Model, 
+                                                                color = Model)) +
+  geom_errorbar(data = calibration_data, aes(x = Time, ymin = Lower, ymax = Upper, group = Model, color = Model, width = 0.5)) + 
+  scale_x_continuous(name = "Predicted Life Expectancy", 
+                     breaks = seq(2, 16, by=3)) + 
+  scale_y_continuous(name = "Observed Life Expectancy", 
+                     breaks = seq(2, 26, by=3)) + theme_bw() + 
+  geom_abline(slope = 1, intercept = 0) + theme(legend.position = "bottom") + scale_color_manual(values = c("mediumpurple4", "darkred")) + coord_cartesian(ylim = c(2, 26), xlim = c(2,16)) 
+
+myplot
+
+rm(list=c("myplot", "ssa_5", "ssa_5l", "ssa_5u", "ssa_7", "ssa_7l", "ssa_7u", "ssa_10", "ssa_10l", "ssa_10u", "ssa_12", "ssa_12u", "ssa_12l", "ssa_15", "ssa_15u", "ssa_15l", "ssa_15p", "ssa_15pl", "ssa_15pu", "ssa_5", "ssa_5l", "ssa_5u", "ssa_7", "ssa_7l", "ssa_7u", "ssa_10", "ssa_10l", "ssa_10u", "ssa_12", "ssa_12u", "ssa_12l", "ssa_15", "ssa_15u", "ssa_15l", "ssa_15p", "ssa_15pl", "ssa_15pu"))
+```
