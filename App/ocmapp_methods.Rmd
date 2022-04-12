@@ -17,7 +17,7 @@ For our analysis, we use NHANES data from 1999-2010, or 6 cycles of the survey. 
 
 Critically, NHANES is not limited to cancer patients, but represents the entire U.S. population. To address this issue, we validated our models in the Prostate, Lung, Colorectal, and Ovarian Cancer Screening Trial (PLCO), looking only at participants who had the cancer site of interest. PLCO enrolled 155,000 participants between November 1993 and July 2001, with mortality follow-up through Dec. 31, 2009. For more information on the PLCO protocol and data, please see the trial’s [website](https://prevention.cancer.gov/major-programs/prostate-lung-colorectal-and-ovarian-cancer-screening-trial). We outputted other-cause mortality predictions from the model built in the NHANES training data for all patients in PLCO with complete data and then compared those predictions to the true outcome in PLCO. We assessed model performance using the time-dependent AUC. 
 
-More information on sample construction,  model building, and model validation is provided in the paper referenced below and on [GitHub](https://github.com/elizabethchase/OtherCauseCancer).
+More information on sample construction,  model building, and model validation is provided in the paper referenced below and on [GitHub](https://github.com/elizabethchase/PCOtherCause).
 
 ## Interpretation
 
@@ -25,6 +25,9 @@ We used a cause-specific Cox proportional hazards modeling approach to build our
 
 ## Model Performance
 
-In PLCO, our model validated with a time-dependent AUC of 0.75 at 10 years and 0.78 at 14 years. Calibration was generally good, with evidence of slight pessimism. 
+In PLCO, our model validated with a time-dependent AUC of 0.75 at 10 years and 0.78 at 15 years. Calibration showed some pessimism, but was comparable to the calibration of other life expectancy calculators in men with prostate cancer. 
 
 ## References
+
+Chase EC, Bryant AK, Sun Y, Jackson WC, Spratt DE, Dess RT, Schipper MJ. "Development and Validation of a Life Expectancy Calculator for US Prostate Cancer Patients." *BJU International* April 2022. DOI:  https://doi.org/10.1111/bju.15740
+
